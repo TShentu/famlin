@@ -190,7 +190,9 @@ export function NewPostModal({
 
   function addFiles(list: FileList | null) {
     if (!list) return;
-    setFiles((prev) => [...prev, ...Array.from(list)]);
+    // Capture the live FileList before clearing the input; React may defer updates.
+    const selectedFiles = Array.from(list);
+    setFiles((prev) => [...prev, ...selectedFiles]);
     // Allow re-picking the same file after removing it.
     if (fileInputRef.current) fileInputRef.current.value = '';
   }

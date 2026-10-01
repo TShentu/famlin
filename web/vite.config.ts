@@ -64,12 +64,18 @@ export default defineConfig({
   },
   server: {
     port: 5174,
+    ...(process.env.OLARES_DEV === '1' ? {
+      allowedHosts: ['.hzfystt.olares.cn'],
+      hmr: { protocol: 'wss' as const, clientPort: 443 },
+      watch: { usePolling: true, interval: 500 },
+    } : {}),
     // @famlin/api-client is a sibling workspace package (packages/api-client) —
     // allow Vite's dev server to read outside web/ so its sourcemaps resolve.
     fs: {
       allow: [workspaceRoot],
     },
     proxy: {
+      '/admin': { target: 'http://localhost:3000', changeOrigin: true },
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,

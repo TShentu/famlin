@@ -228,6 +228,8 @@ jobs:
       - name: Test shared API client
         working-directory: packages/api-client
         run: npx vitest run
+      - name: Check Chinese translation completeness
+        run: node web/scripts/check-zh.mjs
       - name: Typecheck web app
         working-directory: web
         run: npx tsc --noEmit

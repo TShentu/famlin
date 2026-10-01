@@ -10,6 +10,7 @@ import {
 } from '@famlin/api-client';
 import { AppIcon } from '@/components/Logo';
 import { useAuthStore } from '@/stores/authStore';
+import { SUPPORTED_LANGUAGES, storeLanguage, type SupportedLanguage } from '@/i18n';
 import './LoginPage.css';
 
 function getOidcRedirectUri(): string {
@@ -37,7 +38,7 @@ function PhotoCollage() {
 }
 
 export function LoginPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { setAuth } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -130,6 +131,20 @@ export function LoginPage() {
         </div>
 
         <div className="login-card">
+          <label className="field">
+            <span className="field-label">{t('profile.language')}</span>
+            <select className="field-input" aria-label={t('profile.language')}
+              value={i18n.language}
+              onChange={(event) => {
+                const language = event.target.value as SupportedLanguage;
+                storeLanguage(language);
+                void i18n.changeLanguage(language);
+              }}>
+              {SUPPORTED_LANGUAGES.map(language => (
+                <option key={language} value={language}>{t(`profile.languages.${language}`)}</option>
+              ))}
+            </select>
+          </label>
           <form onSubmit={handlePasswordLogin} className="login-form">
             <label className="field">
               <span className="field-label">{t('login.emailLabel')}</span>

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: famlindev
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: famlindev
+  ports:
+  - name: http
+    port: 3000
+    targetPort: http

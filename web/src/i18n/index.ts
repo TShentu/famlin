@@ -3,14 +3,16 @@ import { initReactI18next } from 'react-i18next';
 
 import en from './locales/en.json';
 import nl from './locales/nl.json';
+import zh from './locales/zh.json';
 
-export const SUPPORTED_LANGUAGES = ['en', 'nl'] as const;
+export const SUPPORTED_LANGUAGES = ['en', 'nl', 'zh'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 export const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
 
 const LANGUAGE_KEY = 'famlin_language';
 
 const resources = {
+  zh: { translation: zh },
   en: { translation: en },
   nl: { translation: nl },
 };
