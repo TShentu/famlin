@@ -40,3 +40,7 @@ The sync command stages files under unique names, verifies SHA-256 and atomicall
 Dependency/lockfile changes require a development-app restart to rerun `npm ci`; runtime/system library changes require a new base image. This environment is for development, not a replacement for immutable production releases. Keep the entrance private: Vite serves source code.
 
 The chart's Vite allowed-host suffix currently targets `hzfystt.olares.cn`; update it for a different Olares account. Source and runtime paths are intentionally scoped to this dedicated instance.
+
+## Languages
+
+Web and admin support English, Nederlands and 简体中文, including login and first-time setup. Each UI remembers its selection, updates the HTML language, and sends Accept-Language to the API. Server settings offer the same three default languages for server-rendered pages and notifications. Run `node web/scripts/check-zh.mjs` from the repository root to check all three catalogs for missing keys and interpolation mismatches.

@@ -38,6 +38,11 @@ export function storeLanguage(lang: SupportedLanguage): void {
   localStorage.setItem(LANGUAGE_KEY, lang);
 }
 
+// Keep screen readers and browser typography aligned with the selected UI language.
+i18n.on('languageChanged', language => {
+  document.documentElement.lang = language;
+});
+
 i18n.use(initReactI18next).init({
   resources,
   lng: getInitialLanguage(),

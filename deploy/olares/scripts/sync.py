@@ -44,7 +44,7 @@ while True:
         checksum = hashlib.sha256(path.read_bytes()).hexdigest()
         # Idempotent if the exec connection retries; verify before atomic replacement.
         script = ("const f=require('fs'),c=require('crypto');const [a,b,h]=process.argv.slice(1);"
-                  "if(f.existsSync(a)){if(c.createHash('sha256').update(f.readFileSync(a)).digest('hex')!==h)throw Error('Checksum mismatch');f.renameSync(a,b)}"
+                  "try{if(c.createHash('sha256').update(f.readFileSync(a)).digest('hex')!==h)throw Error('Checksum mismatch');f.renameSync(a,b)}catch(e){if(e.code!=='ENOENT')throw e}"
                   "if(c.createHash('sha256').update(f.readFileSync(b)).digest('hex')!==h)throw Error('Sync verification failed');console.log('Synced '+b)")
         subprocess.run(['olares-cli', 'cluster', 'container', 'exec', target, '--', 'node', '-e',
                         script, '/workspace/source/' + staged, '/workspace/source/' + relative, checksum], check=True)

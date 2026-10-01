@@ -1,3 +1,4 @@
+import { LanguageSelector } from './LanguageSelector';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { startBrowserOidcLogin, completeBrowserOidcLogin, clearBrowserOidcLogin } from '@famlin/api-client';
@@ -103,6 +104,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   return (
     <div className="login-page">
       <div className="card login-box">
+        <LanguageSelector />
         <div className="login-logo">
           <AppIcon size={80} />
         </div>
