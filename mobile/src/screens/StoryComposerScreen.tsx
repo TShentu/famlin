@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -410,9 +410,10 @@ function DraggableOverlay({
 }) {
   const last = useRef({ dx: 0, dy: 0 });
   const moveRef = useRef(onMove);
-  moveRef.current = onMove;
+  useEffect(() => { moveRef.current = onMove; }, [onMove]);
   const responder = useMemo(
     () =>
+      // eslint-disable-next-line react-hooks/refs -- PanResponder only invokes these ref-reading callbacks on native gesture events.
       PanResponder.create({
         // Claim the gesture only once it actually moves, so a plain
         // long-press still reaches the TouchableOpacity below (remove).

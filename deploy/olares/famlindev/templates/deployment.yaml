@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: famlindev
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.workloads.famlindev.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: famlindev
+  template:
+    metadata:
+      labels:
+        app: famlindev
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      initContainers:
+      - name: init-permissions
+        image: beclab/aboveos-busybox:1.37.0
+        command:
+        - sh
+        - -ec
+        - |
+          for d in /media /media/source /media/uploads /media/uploads/originals /media/npm-cache; do
+            mkdir -p "$d"
+            chown 1000:1000 "$d"
+          done
+        securityContext:
+          runAsUser: 0
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - name: media
+          mountPath: /media
+      containers:
+      - name: famlindev
+        image: ghcr.nju.edu.cn/timvanonckelen/famlin:0.7.0@sha256:88670a0117919a69f64bca68986b1c718e24e0d7f283ffff109bf2912933f7d2
+        imagePullPolicy: IfNotPresent
+        workingDir: /workspace
+        command: [sh, -ec]
+        args:
+        - |
+          if [ ! -f /workspace/source/package.json ]; then
+            tar -xzf /workspace/source.tgz -C /workspace/source
+          fi
+          exec sh /workspace/source/deploy/olares/scripts/start-dev.sh
+        env:
+        - name: HOME
+          value: /workspace
+        - name: npm_config_cache
+          value: /workspace/npm-cache
+        - name: SHARP_IGNORE_GLOBAL_LIBVIPS
+          value: '1'
+        - name: OLARES_DEV
+          value: '1'
+        - name: NODE_ENV
+          value: development
+        - name: PORT
+          value: '3000'
+        - name: TRUST_PROXY
+          value: 'true'
+        - name: UPLOADS_DIR
+          value: /workspace/uploads
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: famlindev-database
+              key: DATABASE_URL
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: famlindev-auth
+              key: JWT_SECRET
+        ports:
+        - name: http
+          containerPort: 5174
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '2'
+            memory: 4Gi
+        startupProbe:
+          httpGet:
+            path: /api/auth/setup-status
+            port: http
+          periodSeconds: 5
+          failureThreshold: 240
+        readinessProbe:
+          httpGet:
+            path: /api/auth/setup-status
+            port: http
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/auth/setup-status
+            port: http
+          periodSeconds: 30
+          failureThreshold: 3
+        volumeMounts:
+        - name: media
+          mountPath: /workspace
+      volumes:
+      - name: media
+        hostPath:
+          path: '{{ .Values.userspace.userData }}/Documents/FamlinDev'
+          type: DirectoryOrCreate

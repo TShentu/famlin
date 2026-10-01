@@ -54,7 +54,7 @@ export function TripDetailPage({
 
   const post = postQuery.data;
   const trip = post?.trip;
-  const comments = commentsQuery.data ?? [];
+  const comments = useMemo(() => commentsQuery.data ?? [], [commentsQuery.data]);
 
   const { checkins, tripComments } = useMemo(
     () => (trip ? splitTripComments(comments, trip.startDate) : { checkins: [], tripComments: [], repliesByParent: new Map() }),

@@ -1,3 +1,4 @@
+import i18n from '../i18n';
 import {
   User,
   Group,
@@ -84,7 +85,7 @@ function getToken() {
 
 async function request<T>(path: string, options?: { method?: string; body?: unknown }): Promise<T> {
   const method = options?.method || 'GET';
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { 'Accept-Language': i18n.resolvedLanguage ?? i18n.language };
 
   // Only set Content-Type when there's an actual body to send — Fastify's
   // default JSON body parser rejects an empty body when this header is
@@ -105,7 +106,7 @@ async function request<T>(path: string, options?: { method?: string; body?: unkn
   });
 
   if (!res.ok) {
-    const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+    const data = await res.json().catch(() => ({ error: i18n.t('common.error') }));
     throw new ApiError(res.status, data.error || `HTTP ${res.status}`, data.code);
   }
 
@@ -131,9 +132,9 @@ export const api = {
     // Fields before the file, so the server has them without buffering it.
     form.append('archive', archive);
 
-    const res = await fetch('/api/auth/setup/restore', { method: 'POST', body: form });
+    const res = await fetch('/api/auth/setup/restore', { method: 'POST', body: form, headers: { 'Accept-Language': i18n.resolvedLanguage ?? i18n.language } });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: 'Unknown error' }));
+      const body = await res.json().catch(() => ({ error: i18n.t('common.error') }));
       throw new ApiError(res.status, body.error || `HTTP ${res.status}`, body.code);
     }
     return res.json() as Promise<{ token: string; user: User; counts: Record<string, number> }>;
@@ -379,7 +380,7 @@ export const api = {
   // Not a JSON endpoint (returns a zip stream), so this bypasses request()
   // and does its own auth header + error handling instead.
   downloadExport: async (): Promise<{ blob: Blob; filename: string }> => {
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = { 'Accept-Language': i18n.resolvedLanguage ?? i18n.language };
     const token = getToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -388,7 +389,7 @@ export const api = {
     const res = await fetch('/api/admin/export', { headers });
 
     if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+      const data = await res.json().catch(() => ({ error: i18n.t('common.error') }));
       throw new ApiError(res.status, data.error || `HTTP ${res.status}`, data.code);
     }
 

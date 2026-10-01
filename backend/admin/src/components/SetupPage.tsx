@@ -1,3 +1,4 @@
+import { LanguageSelector } from './LanguageSelector';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from './Logo';
@@ -43,8 +44,8 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
           : await api.setup({ email, name, password });
       localStorage.setItem('famlin_admin_token', result.token);
       onSetupComplete(result.user);
-    } catch (err: any) {
-      setError(err.message || t(mode === 'restore' ? 'setup.restoreFailed' : 'setup.setupFailed'));
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : t('common.error')) || t(mode === 'restore' ? 'setup.restoreFailed' : 'setup.setupFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -53,6 +54,7 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
   return (
     <div className="login-page">
       <div className="card login-box">
+        <LanguageSelector />
         <div className="login-logo">
           <AppIcon size={80} />
         </div>

@@ -38,7 +38,9 @@ export function AddAlbumPhotosModal({ postId, onClose }: { postId: string; onClo
 
   function addFiles(list: FileList | null) {
     if (!list) return;
-    setFiles((prev) => [...prev, ...Array.from(list)].slice(0, MAX_PHOTOS));
+    // Capture the live FileList before clearing the input; React may defer updates.
+    const selectedFiles = Array.from(list);
+    setFiles((prev) => [...prev, ...selectedFiles].slice(0, MAX_PHOTOS));
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 

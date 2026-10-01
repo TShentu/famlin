@@ -38,15 +38,16 @@ export function LocationPickerModal({ visible, initialLocation, onCancel, onConf
   useEffect(() => {
     if (!visible) return;
     if (initialLocation) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the draft coordinates with the externally selected location on opening.
       setCoords({ latitude: initialLocation.latitude, longitude: initialLocation.longitude });
       setLocationName(initialLocation.locationName || '');
       return;
     }
-    useCurrentLocation();
+    selectCurrentLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  async function useCurrentLocation() {
+  async function selectCurrentLocation() {
     try {
       setLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -87,7 +88,7 @@ export function LocationPickerModal({ visible, initialLocation, onCancel, onConf
             onPick={handlePick}
             style={styles.map}
           />
-          <TouchableOpacity style={styles.locateButton} onPress={useCurrentLocation} disabled={locating}>
+          <TouchableOpacity style={styles.locateButton} onPress={selectCurrentLocation} disabled={locating}>
             {locating ? (
               <ActivityIndicator size="small" color={colors.primary} />
             ) : (

@@ -29,6 +29,7 @@ export default function App() {
   // next login on the profile page.
   useEffect(() => {
     if (!user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset navigation when the external auth store ends the session.
       setView('feed');
       setTripPostId(null);
       setAlbumPostId(null);
@@ -54,7 +55,7 @@ export default function App() {
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     async function bootstrap() {

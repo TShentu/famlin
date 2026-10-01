@@ -44,7 +44,7 @@ export function AlbumDetailPage({
 
   const post = postQuery.data;
   const album = post?.album;
-  const comments = commentsQuery.data ?? [];
+  const comments = useMemo(() => commentsQuery.data ?? [], [commentsQuery.data]);
 
   const photos = useMemo(() => collectAlbumPhotos(comments), [comments]);
 

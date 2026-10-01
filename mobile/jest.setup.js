@@ -43,3 +43,11 @@ jest.mock('expo-constants', () => ({
     manifest: {},
   },
 }));
+
+// Tests mock their network boundary; avoid lazily loading Expo native fetch
+// during Jest teardown, after the native module registry has been disposed.
+Object.defineProperty(globalThis, "fetch", {
+  configurable: true,
+  writable: true,
+  value: jest.fn(() => Promise.reject(new Error("Unexpected network request in unit test"))),
+});

@@ -198,7 +198,6 @@ export function ChatPage({
     return date.toLocaleDateString(i18n.language, { year: 'numeric', month: 'long', day: 'numeric' });
   }
 
-  let lastDateKey = '';
 
   return (
     <div className="chat-shell">
@@ -286,10 +285,9 @@ export function ChatPage({
                     </button>
                   )}
 
-                  {messages.map((message) => {
+                  {messages.map((message, index) => {
                     const key = dateKey(message.createdAt);
-                    const showDivider = key !== lastDateKey;
-                    lastDateKey = key;
+                    const showDivider = index === 0 || key !== dateKey(messages[index - 1].createdAt);
                     return (
                       <div key={message.id} className="chat-message-group">
                         {showDivider && (

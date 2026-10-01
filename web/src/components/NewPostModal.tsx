@@ -116,6 +116,7 @@ export function NewPostModal({
   // offered, fall back to the first type that still is (if any is left).
   useEffect(() => {
     if (!offeredTypes.includes(type) && offeredTypes.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reconcile the selected type when the server-provided group permissions change.
       setType(offeredTypes[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -190,7 +191,9 @@ export function NewPostModal({
 
   function addFiles(list: FileList | null) {
     if (!list) return;
-    setFiles((prev) => [...prev, ...Array.from(list)]);
+    // Capture the live FileList before clearing the input; React may defer updates.
+    const selectedFiles = Array.from(list);
+    setFiles((prev) => [...prev, ...selectedFiles]);
     // Allow re-picking the same file after removing it.
     if (fileInputRef.current) fileInputRef.current.value = '';
   }

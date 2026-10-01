@@ -53,6 +53,7 @@ export function CheckInComposerModal({
 
   useEffect(() => {
     if (visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Initialize the draft from the externally selected check-in when the modal opens.
       setPlace('');
       setText('');
       setPhotoUrls([]);

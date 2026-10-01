@@ -137,6 +137,7 @@ function StoryPlayer({ sequences: initial, start }: { sequences: Story[][]; star
   }, [paused, story]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Advance the story when its playback timer reaches the duration.
     if (elapsed >= STORY_DURATION_MS) goNext();
   }, [elapsed, goNext]);
 

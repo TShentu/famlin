@@ -1,6 +1,6 @@
-export * from '@famlin/api-client';
-
 import { setApiBaseUrl, getCurrentServerUrl } from '@famlin/api-client';
+
+export * from '@famlin/api-client';
 
 // Dev convenience only — the shared package itself is platform-agnostic and
 // doesn't read Expo-specific env vars, so this lives here instead. There is

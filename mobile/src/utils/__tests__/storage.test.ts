@@ -14,8 +14,8 @@ jest.mock('react-native', () => ({ Platform: { OS: 'ios' } }));
 
 describe('mobileStorageAdapter', () => {
   it('delegates getItem/setItem/removeItem to the underlying primitives (SecureStore on native)', async () => {
-    const SecureStore = require('expo-secure-store');
-    const { mobileStorageAdapter } = require('@/utils/storage');
+    const SecureStore = jest.requireMock('expo-secure-store');
+    const { mobileStorageAdapter } = jest.requireActual('@/utils/storage');
 
     await expect(mobileStorageAdapter.getItem('famlin_token')).resolves.toBe('secure-value');
     expect(SecureStore.getItemAsync).toHaveBeenCalledWith('famlin_token');

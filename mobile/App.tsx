@@ -6,12 +6,11 @@ import { NavigationContainer } from '@react-navigation/native';
 import { navigationRef } from '@/navigation/navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import axios from 'axios';
+import { isAxiosError } from 'axios';
 import { useFonts, Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black } from '@expo-google-fonts/nunito';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as Linking from 'expo-linking';
 
-import '@/i18n';
 import { initI18nLanguage } from '@/i18n';
 import { useAuthStore } from '@/stores/authStore';
 import { LoginScreen } from '@/screens/LoginScreen';
@@ -108,7 +107,7 @@ function AppContent() {
       }
     });
     return () => subscription.remove();
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     function handleUrl(url: string) {
@@ -139,7 +138,7 @@ function AppContent() {
         // couldn't reach the server on this launch — wipe neither the token
         // nor the remembered server URL, or the user would be forced to
         // re-enter the server address once connectivity comes back.
-        if (axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) {
+        if (isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) {
           await clearSession();
         }
       } finally {
@@ -147,7 +146,7 @@ function AppContent() {
       }
     }
     bootstrap();
-  }, []);
+  }, [clearSession, loadToken, setAuth]);
 
   if (!fontsLoaded || initializing || isLoading) {
     return (

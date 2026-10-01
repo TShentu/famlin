@@ -119,7 +119,7 @@ export function PostDetailScreen() {
     } else if (post?.type === 'ALBUM') {
       navigation.replace('AlbumDetail', { postId });
     }
-  }, [post?.type, postId]);
+  }, [post?.type, postId, navigation]);
 
   const { data: comments, refetch } = useQuery({
     queryKey: ['comments', postId],

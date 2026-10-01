@@ -18,7 +18,7 @@
     "build:ios": "eas build --platform ios",
     "build:android": "eas build --platform android",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.2.3",
@@ -82,5 +82,10 @@
     "jest-expo": "~57.0.5",
     "react-test-renderer": "19.2.3",
     "typescript": "~6.0.3"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "^11.1.1"
+    }
   }
 }

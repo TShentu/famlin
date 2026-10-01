@@ -1,4 +1,4 @@
-import i18n from 'i18next';
+import i18n, { use as registerPlugin, changeLanguage } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import * as Localization from 'expo-localization';
 
@@ -15,7 +15,7 @@ const resources = {
   nl: { translation: nl },
 };
 
-i18n.use(initReactI18next).init({
+registerPlugin(initReactI18next).init({
   resources,
   lng: DEFAULT_LANGUAGE,
   fallbackLng: DEFAULT_LANGUAGE,
@@ -27,14 +27,14 @@ i18n.use(initReactI18next).init({
 export async function initI18nLanguage() {
   const storedLang = await getLanguage();
   if (storedLang && SUPPORTED_LANGUAGES.includes(storedLang as SupportedLanguage)) {
-    await i18n.changeLanguage(storedLang);
+    await changeLanguage(storedLang);
     return;
   }
 
   const locales = Localization.getLocales();
   const deviceLang = locales[0]?.languageCode;
   if (deviceLang === 'nl') {
-    await i18n.changeLanguage('nl');
+    await changeLanguage('nl');
   }
 }
 

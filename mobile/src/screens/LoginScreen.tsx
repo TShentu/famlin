@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
@@ -47,7 +47,7 @@ export function LoginScreen() {
   const appleAvailable = useAppleSignInAvailable();
   const showApple = appleAvailable && !!ssoConfig?.appleSignInEnabled;
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [fadeAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     getServerUrl().then((stored) => {
@@ -64,7 +64,7 @@ export function LoginScreen() {
       duration: 260,
       useNativeDriver: true,
     }).start();
-  }, [step]);
+  }, [step, fadeAnim]);
 
   async function handleContinue() {
     const normalized = normalizeServerUrl(serverUrl);
@@ -81,7 +81,7 @@ export function LoginScreen() {
       setServerUrlInput(normalized);
       await persistServerUrl(normalized);
       setStep('credentials');
-    } catch (err: any) {
+    } catch {
       Alert.alert(t('login.alerts.serverUnreachableTitle'), t('login.alerts.serverUnreachableMessage'));
     } finally {
       setIsCheckingServer(false);

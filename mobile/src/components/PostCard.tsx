@@ -116,7 +116,6 @@ function PhotoCollage({
 }
 
 function PersonChip({ person }: { person: PostPerson }) {
-  const displayName = person.userName || person.label;
   const avatarUrl = person.userAvatarUrl;
 
   if (avatarUrl) {

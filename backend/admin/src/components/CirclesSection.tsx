@@ -41,6 +41,7 @@ export function CirclesSection({ groupId, members }: { groupId: string; members:
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reload remote circles and reset their expanded state when the selected group changes.
     void load();
     setExpandedId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps

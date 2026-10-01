@@ -41,10 +41,10 @@ describe('authStore', () => {
   });
 
   it('setAuth stores the token/server, sets the api base URL, updates state, and refreshes the media token', async () => {
-    const storage = require('@/utils/storage');
-    const client = require('@famlin/api-client');
-    const uploads = require('@/api/uploads');
-    const { useAuthStore } = require('@/stores/authStore');
+    const storage = jest.requireMock('@/utils/storage');
+    const client = jest.requireMock('@famlin/api-client');
+    const uploads = jest.requireMock('@/api/uploads');
+    const { useAuthStore } = jest.requireActual('@/stores/authStore');
 
     await useAuthStore.getState().setAuth(testUser, 'tok-abc', 'http://example.com');
 
@@ -61,10 +61,10 @@ describe('authStore', () => {
   });
 
   it('logout deletes the token AND the server URL and resets state', async () => {
-    const storage = require('@/utils/storage');
-    const client = require('@famlin/api-client');
+    const storage = jest.requireMock('@/utils/storage');
+    const client = jest.requireMock('@famlin/api-client');
     storage.getPushToken.mockResolvedValue(null); // no push token registered
-    const { useAuthStore } = require('@/stores/authStore');
+    const { useAuthStore } = jest.requireActual('@/stores/authStore');
 
     await useAuthStore.getState().setAuth(testUser, 'tok-abc', 'http://example.com');
     await useAuthStore.getState().logout();
@@ -80,10 +80,10 @@ describe('authStore', () => {
   });
 
   it('logout also unregisters this device push token when one is stored', async () => {
-    const storage = require('@/utils/storage');
-    const client = require('@famlin/api-client');
+    const storage = jest.requireMock('@/utils/storage');
+    const client = jest.requireMock('@famlin/api-client');
     storage.getPushToken.mockResolvedValue('push-token-xyz');
-    const { useAuthStore } = require('@/stores/authStore');
+    const { useAuthStore } = jest.requireActual('@/stores/authStore');
 
     await useAuthStore.getState().logout();
 
@@ -92,9 +92,9 @@ describe('authStore', () => {
   });
 
   it('clearSession deletes the token but PRESERVES the server URL', async () => {
-    const storage = require('@/utils/storage');
-    const client = require('@famlin/api-client');
-    const { useAuthStore } = require('@/stores/authStore');
+    const storage = jest.requireMock('@/utils/storage');
+    const client = jest.requireMock('@famlin/api-client');
+    const { useAuthStore } = jest.requireActual('@/stores/authStore');
 
     await useAuthStore.getState().setAuth(testUser, 'tok-abc', 'http://example.com');
     await useAuthStore.getState().clearSession();

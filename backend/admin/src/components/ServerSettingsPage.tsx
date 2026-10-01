@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ServerSettings, User } from '../api/client';
-import { SUPPORTED_LANGUAGES } from '../i18n';
+import { SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type SupportedLanguage } from '../i18n';
 import { Icon, IconName } from './Icon';
 import { PeopleMappingSection } from './PeopleMappingSection';
 
@@ -104,9 +104,9 @@ export function ServerSettingsPage() {
       }),
       api.getAllUsers().then(setUsers),
     ])
-      .catch((err) => setError(err.message))
+      .catch((err) => setError((err instanceof Error ? err.message : t('common.error'))))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!success) return;
@@ -169,8 +169,8 @@ export function ServerSettingsPage() {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-    } catch (err: any) {
-      setExportError(err.message);
+    } catch (err: unknown) {
+      setExportError((err instanceof Error ? err.message : t('common.error')));
     } finally {
       setExporting(false);
     }
@@ -193,8 +193,8 @@ export function ServerSettingsPage() {
       setSettings(updated);
       setForm(updated);
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : t('common.error')));
     } finally {
       setSaving(false);
     }
@@ -207,7 +207,7 @@ export function ServerSettingsPage() {
   const immichConfigured = Boolean(form.immichServerUrl && form.immichApiKey);
   const localConfigured = Boolean(form.localMediaPath);
   const anyChannelEnabled = form.pushNotificationsEnabled || form.emailNotificationsEnabled;
-  const languageName = form.defaultLanguage === 'en' ? 'English' : 'Nederlands';
+  const languageName = LANGUAGE_NAMES[form.defaultLanguage as SupportedLanguage] ?? form.defaultLanguage;
 
   const configuredBadge = (ok: boolean) => (
     <span className={`badge ${ok ? 'ok' : 'off'}`}>
@@ -307,7 +307,7 @@ export function ServerSettingsPage() {
                   >
                     {SUPPORTED_LANGUAGES.map((lang) => (
                       <option key={lang} value={lang}>
-                        {lang === 'en' ? 'English' : 'Nederlands'}
+                        {LANGUAGE_NAMES[lang]}
                       </option>
                     ))}
                   </select>

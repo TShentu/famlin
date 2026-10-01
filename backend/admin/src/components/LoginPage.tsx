@@ -1,3 +1,5 @@
+import { isAxiosError } from 'axios';
+import { LanguageSelector } from './LanguageSelector';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { startBrowserOidcLogin, completeBrowserOidcLogin, clearBrowserOidcLogin } from '@famlin/api-client';
@@ -45,6 +47,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     if (providerError) {
       clearBrowserOidcLogin();
       window.history.replaceState({}, '', window.location.pathname);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Consume the external OIDC redirect exactly once after mounting.
       setError(t('login.ssoLoginFailed'));
       return;
     }
@@ -56,10 +59,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         const result = await completeBrowserOidcLogin(code, state, getOidcRedirectUri());
         localStorage.setItem('famlin_admin_token', result.token);
         onLogin(result.user as User);
-      } catch (err: any) {
+      } catch (err: unknown) {
         // err.message is an untranslated slug from the shared helper — show
         // the backend's translated error when there is one, else the generic.
-        setError(err.response?.data?.error || t('login.ssoLoginFailed'));
+        setError((isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined) || t('login.ssoLoginFailed'));
       } finally {
         window.history.replaceState({}, '', window.location.pathname);
         setIsSsoLoading(false);
@@ -93,8 +96,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       const result = await api.loginWithPassword(email, password);
       localStorage.setItem('famlin_admin_token', result.token);
       onLogin(result.user);
-    } catch (err: any) {
-      setError(err.message || t('login.loginFailed'));
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : '') || t('login.loginFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -103,6 +106,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   return (
     <div className="login-page">
       <div className="card login-box">
+        <LanguageSelector />
         <div className="login-logo">
           <AppIcon size={80} />
         </div>

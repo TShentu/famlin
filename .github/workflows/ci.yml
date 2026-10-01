@@ -12,7 +12,7 @@ concurrency:
 jobs:
   changes:
     name: Detect changed paths
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       mobile: ${{ steps.filter.outputs.mobile }}
     steps:
@@ -36,7 +36,7 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -81,7 +81,7 @@ jobs:
 
   backend:
     name: Backend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16-alpine
@@ -124,7 +124,7 @@ jobs:
 
   admin:
     name: Admin UI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -155,7 +155,7 @@ jobs:
     name: Mobile
     needs: changes
     if: needs.changes.outputs.mobile == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -212,7 +212,7 @@ jobs:
 
   web:
     name: Web app & shared API client
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -228,6 +228,8 @@ jobs:
       - name: Test shared API client
         working-directory: packages/api-client
         run: npx vitest run
+      - name: Check Chinese translation completeness
+        run: node web/scripts/check-zh.mjs
       - name: Typecheck web app
         working-directory: web
         run: npx tsc --noEmit
@@ -239,7 +241,7 @@ jobs:
 
   docs:
     name: Docs site
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -268,7 +270,7 @@ jobs:
   api-breaking-changes:
     name: API breaking-change check
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       SPEC: docs/openapi/famlin.yaml
     steps:
@@ -322,17 +324,18 @@ jobs:
 
   docker:
     name: Docker build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4.4.1
       - name: Build backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7.4.0
         with:
           # Repo-root context: the image also bundles web/ + packages/ — see
           # backend/Dockerfile.
           context: .
           file: ./backend/Dockerfile
           push: false
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
