@@ -3,6 +3,9 @@
 // too — so each test needs a fresh instance of both (vi.resetModules() +
 // dynamic import) and must re-register the fake adapter after every reset.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+type ResponseHandlers = { handlers: { rejected: (error: unknown) => Promise<never> }[] };
+type RequestHandlers = { handlers: { fulfilled: (config: { headers: Record<string, string> }) => Promise<{ headers: Record<string, string> }> }[] };
+
 import type { StorageAdapter } from '../storage';
 
 describe('client', () => {
@@ -52,7 +55,7 @@ describe('client', () => {
     const handler = vi.fn();
     setUnauthorizedHandler(handler);
 
-    const rejectedInterceptor = (api.interceptors.response as any).handlers[0].rejected;
+    const rejectedInterceptor = (api.interceptors.response as unknown as ResponseHandlers).handlers[0].rejected;
     const fakeError = { response: { status: 401 }, config: { headers: { Authorization: 'Bearer t' } } };
 
     await expect(rejectedInterceptor(fakeError)).rejects.toBe(fakeError);
@@ -67,7 +70,7 @@ describe('client', () => {
     const handler = vi.fn();
     setUnauthorizedHandler(handler);
 
-    const rejectedInterceptor = (api.interceptors.response as any).handlers[0].rejected;
+    const rejectedInterceptor = (api.interceptors.response as unknown as ResponseHandlers).handlers[0].rejected;
     const fakeError = { response: { status: 500 } };
 
     await expect(rejectedInterceptor(fakeError)).rejects.toBe(fakeError);
@@ -81,7 +84,7 @@ describe('client', () => {
       fakeAdapter.getItem.mockImplementation(async (key: string) => storage[key] ?? null);
       const { api, setApiBaseUrl } = await import('../client');
       setApiBaseUrl(currentServer);
-      const fulfilled = (api.interceptors.request as any).handlers[0].fulfilled;
+      const fulfilled = (api.interceptors.request as unknown as RequestHandlers).handlers[0].fulfilled;
       const config = await fulfilled({ headers: {} });
       return config.headers;
     }
@@ -114,7 +117,7 @@ describe('client', () => {
     const handler = vi.fn();
     setUnauthorizedHandler(handler);
 
-    const rejectedInterceptor = (api.interceptors.response as any).handlers[0].rejected;
+    const rejectedInterceptor = (api.interceptors.response as unknown as ResponseHandlers).handlers[0].rejected;
     const fakeError = { response: { status: 401 }, config: { headers: {} } };
 
     await expect(rejectedInterceptor(fakeError)).rejects.toBe(fakeError);

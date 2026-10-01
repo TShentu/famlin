@@ -1,5 +1,12 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
 
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useAuthStore } from '@/stores/authStore';
+import { fetchNotificationConfig, registerPushToken } from '@famlin/api-client';
+import { setPushToken } from '@/utils/storage';
+import { navigate } from '@/navigation/navigationRef';
+import * as Notifications from 'expo-notifications';
+
 // expo-notifications / expo-device are mocked globally in jest.setup.js
 // (getExpoPushTokenAsync resolves { data: 'test-expo-push-token' }, isDevice: true).
 
@@ -19,13 +26,6 @@ jest.mock('@/utils/storage', () => ({
 jest.mock('@/navigation/navigationRef', () => ({
   navigate: jest.fn(),
 }));
-
-import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { useAuthStore } from '@/stores/authStore';
-import { fetchNotificationConfig, registerPushToken } from '@famlin/api-client';
-import { setPushToken } from '@/utils/storage';
-import { navigate } from '@/navigation/navigationRef';
-import * as Notifications from 'expo-notifications';
 
 describe('usePushNotifications', () => {
   beforeEach(() => {

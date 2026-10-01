@@ -45,6 +45,7 @@ export function AddAlbumPhotosModal({ visible, albumTitle, submitting, onCancel,
 
   useEffect(() => {
     if (visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset the draft when the native modal becomes visible.
       setCaption('');
       setPhotoUrls([]);
       setPendingCount(0);

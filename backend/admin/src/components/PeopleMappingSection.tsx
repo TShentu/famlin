@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError, MediaPerson, MediaPersonLink, User } from '../api/client';
 import { Icon } from './Icon';
@@ -24,11 +24,7 @@ export function PeopleMappingSection({ users }: PeopleMappingSectionProps) {
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -49,7 +45,12 @@ export function PeopleMappingSection({ users }: PeopleMappingSectionProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Start the remote person-mapping request and expose its loading state.
+    void loadData();
+  }, [loadData]);
 
   const handleSelectPerson = (person: MediaPerson) => {
     setSelectedPerson(person);

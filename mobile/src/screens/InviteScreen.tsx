@@ -146,13 +146,13 @@ export function InviteScreen({ token, server, onDone }: InviteScreenProps) {
           });
 
         setMode('choose');
-      } catch (err) {
+      } catch {
         restorePreviousServer();
         setErrorMessage(t('invite.errors.notFound'));
         setMode('error');
       }
     })();
-  }, [token, server]);
+  }, [token, server, t]);
 
   // Backing out of an invite for another server without signing in there:
   // point the client back at the server the existing session belongs to.

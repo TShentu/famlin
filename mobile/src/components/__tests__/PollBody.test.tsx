@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { Post } from '@/types';
 
+import { PollBody } from '@/components/PollBody';
+import { votePoll } from '@famlin/api-client';
+
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { count?: number }) => {
@@ -32,9 +35,6 @@ jest.mock('@famlin/api-client', () => ({
 jest.mock('@/utils/postCache', () => ({
   patchPostInCaches: jest.fn(),
 }));
-
-import { PollBody } from '@/components/PollBody';
-import { votePoll } from '@famlin/api-client';
 
 function makePollPost(overrides: Partial<Post> = {}): Post {
   return {

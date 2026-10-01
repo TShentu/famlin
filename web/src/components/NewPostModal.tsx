@@ -116,6 +116,7 @@ export function NewPostModal({
   // offered, fall back to the first type that still is (if any is left).
   useEffect(() => {
     if (!offeredTypes.includes(type) && offeredTypes.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reconcile the selected type when the server-provided group permissions change.
       setType(offeredTypes[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

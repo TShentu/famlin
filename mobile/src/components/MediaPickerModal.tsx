@@ -82,6 +82,7 @@ export function MediaPickerModal({ visible, groupId, onCancel, onConfirm }: Medi
 
   useEffect(() => {
     if (!visible) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Start a remote media request and expose the loading state for the selected source.
     setAlbums(null);
     setSelectedLinkId(null);
     setPeople(null);
@@ -98,17 +99,18 @@ export function MediaPickerModal({ visible, groupId, onCancel, onConfirm }: Medi
       })
       .catch(() => setError(t('mediaPicker.loadAlbumsError')))
       .finally(() => setLoading(false));
-  }, [visible, groupId]);
+  }, [visible, groupId, t]);
 
   useEffect(() => {
     if (!selectedLinkId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Start a remote media request and expose the loading state for the selected source.
     setAssets(null);
     setLoading(true);
     getMediaAlbumAssets(selectedLinkId, selectedPersonId || undefined)
       .then(setAssets)
       .catch(() => setError(t('mediaPicker.loadAssetsError')))
       .finally(() => setLoading(false));
-  }, [selectedLinkId, selectedPersonId]);
+  }, [selectedLinkId, selectedPersonId, t]);
 
   const toggle = useCallback((assetId: string) => {
     setSelected((prev) => {

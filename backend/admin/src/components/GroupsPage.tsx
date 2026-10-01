@@ -73,6 +73,7 @@ export function GroupsPage() {
 
   useEffect(() => {
     Promise.all([
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize remote group data and selection-dependent loading state.
       loadGroups(),
       api.getAllUsers().then(setUsers),
       loadCatalog('immich'),
@@ -105,6 +106,7 @@ export function GroupsPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize remote group data and selection-dependent loading state.
     setNewMemberId('');
     setShowAddExisting(false);
     setSelectedAlbumId('');

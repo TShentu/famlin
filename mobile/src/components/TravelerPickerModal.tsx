@@ -54,6 +54,7 @@ export function TravelerPickerModal({
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset the draft selection when the native modal opens.
     if (visible) setSelected(new Set(initialSelectedIds));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);

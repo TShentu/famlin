@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import { FormEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -74,8 +75,8 @@ export function ProfilePage({
       setUploadError(null);
       updateUser(updated);
     },
-    onError: (err: any) => {
-      setUploadError(err.response?.data?.error || t('profile.photoUploadFailed'));
+    onError: (err: unknown) => {
+      setUploadError((isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined) || t('profile.photoUploadFailed'));
     },
   });
 
@@ -88,9 +89,9 @@ export function ProfilePage({
       setNewPassword('');
       setConfirmPassword('');
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       setPasswordSuccess(false);
-      setPasswordError(err.response?.data?.error || t('profile.passwordChangeFailed'));
+      setPasswordError((isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined) || t('profile.passwordChangeFailed'));
     },
   });
 
@@ -103,8 +104,8 @@ export function ProfilePage({
       setDeleteOpen(false);
       onLogout();
     },
-    onError: (err: any) => {
-      setDeleteError(err.response?.data?.error || t('common.tryAgain'));
+    onError: (err: unknown) => {
+      setDeleteError((isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined) || t('common.tryAgain'));
     },
   });
 

@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -67,6 +68,7 @@ export function LoginPage() {
     if (providerError) {
       clearBrowserOidcLogin();
       window.history.replaceState({}, '', window.location.pathname);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Consume the external OIDC redirect exactly once after mounting.
       setError(t('login.ssoLoginFailed'));
       return;
     }
@@ -77,10 +79,10 @@ export function LoginPage() {
       try {
         const result = await completeBrowserOidcLogin(code!, state, getOidcRedirectUri());
         await setAuth(result.user, result.token);
-      } catch (err: any) {
+      } catch (err: unknown) {
         // err.message is an untranslated slug from the shared helper — show
         // the backend's translated error when there is one, else the generic.
-        setError(err.response?.data?.error || t('login.ssoLoginFailed'));
+        setError((isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined) || t('login.ssoLoginFailed'));
       } finally {
         window.history.replaceState({}, '', window.location.pathname);
         setIsSsoLoading(false);
@@ -112,8 +114,8 @@ export function LoginPage() {
     try {
       const result = await loginWithPassword(email.trim(), password);
       await setAuth(result.user, result.token);
-    } catch (err: any) {
-      setError(err.response?.data?.error || t('login.loginFailed'));
+    } catch (err: unknown) {
+      setError((isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined) || t('login.loginFailed'));
     } finally {
       setIsLoading(false);
     }

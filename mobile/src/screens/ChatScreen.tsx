@@ -372,6 +372,7 @@ function ChatMessageRow({
     .activeOffsetX([-10, 10])
     .failOffsetY([-10, 10])
     .onUpdate((event) => {
+      // eslint-disable-next-line react-hooks/immutability -- Reanimated shared values must be updated inside UI-thread gesture worklets.
       translateX.value = isOwn
         ? Math.max(-MAX_SWIPE_TRANSLATION, Math.min(0, event.translationX))
         : Math.max(0, Math.min(MAX_SWIPE_TRANSLATION, event.translationX));
@@ -380,6 +381,7 @@ function ChatMessageRow({
       if (Math.abs(translateX.value) > MAX_SWIPE_TRANSLATION * SWIPE_REPLY_THRESHOLD_RATIO) {
         runOnJS(onSwipeToReply)(message);
       }
+      // eslint-disable-next-line react-hooks/immutability -- Reanimated shared values must be updated inside UI-thread gesture worklets.
       translateX.value = withSpring(0);
     });
 

@@ -126,6 +126,7 @@ export function ContentPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Start the remote filtered request and expose its loading state.
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, groupId, authorId, q]);

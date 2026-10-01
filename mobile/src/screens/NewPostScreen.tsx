@@ -181,16 +181,17 @@ export function NewPostScreen() {
 
   React.useEffect(() => {
     if (groups && groups.length > 0 && selectedGroupIds.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reconcile the composer with asynchronously loaded group permissions and membership.
       setSelectedGroupIds([groups[0].id]);
     }
-  }, [groups]);
+  }, [groups, selectedGroupIds.length]);
 
   // Only the post types EVERY selected target group allows are offered —
   // the server enforces each group's allowedPostTypes on POST /api/posts,
   // so the segmented control must not offer a type a target group rejects.
   // An empty intersection (possible when cross-posting to groups with
   // disjoint allow-lists) disables submit with a notice instead.
-  const offeredPostTypes = resolveOfferedPostTypes(POST_TYPES, groups, selectedGroupIds);
+  const offeredPostTypes = React.useMemo(() => resolveOfferedPostTypes(POST_TYPES, groups, selectedGroupIds), [groups, selectedGroupIds]);
   const noOfferedPostTypes = offeredPostTypes.length === 0;
 
   // When the group selection changes and the current type is no longer
@@ -198,9 +199,10 @@ export function NewPostScreen() {
   React.useEffect(() => {
     const reconciled = reconcilePostTypeSelection(postType, offeredPostTypes);
     if (reconciled !== null && reconciled !== postType) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reconcile the composer with asynchronously loaded group permissions and membership.
       setPostType(reconciled);
     }
-  }, [offeredPostTypes.join(','), postType]);
+  }, [offeredPostTypes, postType]);
 
   const nonEmptyPollOptions = pollOptions.map((option) => option.trim()).filter((option) => option.length > 0);
   const isTrip = postType === 'TRIP';
@@ -220,8 +222,9 @@ export function NewPostScreen() {
   // has loaded, so an in-flight fetch can't wrongly clear the selection).
   React.useEffect(() => {
     if (!isTrip || !travelerCandidatesLoaded) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reconcile the composer with asynchronously loaded group permissions and membership.
     setTripTravelerIds((prev) => {
-      const next = prev.filter((id) => travelerCandidates.some((member) => member.id === id));
+      const next = prev.filter((id) => travelerCandidateIdsKey.split(',').includes(id));
       return next.length === prev.length ? prev : next;
     });
   }, [isTrip, travelerCandidatesLoaded, travelerCandidateIdsKey]);

@@ -165,7 +165,7 @@ export function PhotosScreen() {
     queryFn: () => fetchAlbumPosts({ groupIds: [activeGroupId!] }),
     enabled: !!activeGroupId,
   });
-  const albums = albumsPage?.items ?? [];
+  const albums = useMemo(() => albumsPage?.items ?? [], [albumsPage?.items]);
 
   // Load photo timeline for the active group
   const { query, items: allPhotos, onEndReached } = useCursorPagination({

@@ -15,11 +15,14 @@ vi.mock('@famlin/api-client', async (importOriginal) => ({
 
 // Mock IntersectionObserver for tests
 globalThis.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
+  readonly root = null;
+  readonly rootMargin = "0px";
+  readonly thresholds = [0];
+  takeRecords(): IntersectionObserverEntry[] { return []; }
   observe() {}
   disconnect() {}
   unobserve() {}
-} as any;
+};
 
 const groups = [
   { id: 'group-1', name: 'Familie de Vries', createdAt: '2026-01-01T00:00:00Z', chitchatEnabled: false },

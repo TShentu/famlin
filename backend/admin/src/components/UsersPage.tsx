@@ -43,6 +43,7 @@ export function UsersPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Start the initial remote user request and expose its loading state.
     load();
   }, []);
 

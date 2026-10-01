@@ -1,3 +1,5 @@
+// Native Animated/PanResponder handles are read to attach native bindings, not to render mutable ref data.
+/* eslint-disable react-hooks/refs */
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -116,7 +118,7 @@ function ImagePage({
     pageHeight: 0,
   }).current;
   const onZoomChangeRef = useRef(onZoomChange);
-  onZoomChangeRef.current = onZoomChange;
+  useEffect(() => { onZoomChangeRef.current = onZoomChange; }, [onZoomChange]);
 
   function clampPan(s: number, value: number, size: number) {
     const max = Math.max(0, (size * (s - 1)) / 2);
@@ -224,6 +226,8 @@ function ImagePage({
       z.ty = 0;
       animateTo(1);
     }
+    // The native responder owns stable gesture state; reset only when leaving this page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
 
   // Tap/double-tap detection lives on plain touch events, not the
@@ -521,10 +525,11 @@ export function ImageViewerScreen() {
   useEffect(() => {
     // Keep the current page aligned when the width changes on rotation.
     scrollViewRef.current?.scrollTo({ x: currentIndex * width, animated: false });
-  }, [width]);
+  }, [width, currentIndex]);
 
   useEffect(() => {
     // Swiping to a different photo means the sheet no longer applies to it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Close the native comment sheet when its selected photo changes.
     setCommentsVisible(false);
   }, [currentIndex]);
 

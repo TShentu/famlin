@@ -38,7 +38,7 @@ export function toggleGroupSelection(current: string[], groupId: string): string
 // enforcement of POST /api/posts.
 export function resolveOfferedPostTypes(
   knownTypes: readonly string[],
-  groups: ReadonlyArray<{ id: string; allowedPostTypes?: string[] }> | undefined,
+  groups: readonly { id: string; allowedPostTypes?: string[] }[] | undefined,
   selectedGroupIds: readonly string[]
 ): string[] {
   const constraints = selectedGroupIds

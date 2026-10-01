@@ -23,8 +23,8 @@ describe('uploads', () => {
   describe('getUploadUrl', () => {
     it('returns the raw path when no server URL is set', async () => {
       const client = await import('../client');
-      (client.getCurrentServerUrl as any).mockReturnValue(null);
-      (client.getCurrentMediaToken as any).mockReturnValue('some-token');
+      vi.mocked(client.getCurrentServerUrl).mockReturnValue(null);
+      vi.mocked(client.getCurrentMediaToken).mockReturnValue('some-token');
 
       const { getUploadUrl } = await import('../uploads');
       expect(getUploadUrl('/uploads/abc.jpg')).toBe('/uploads/abc.jpg');
@@ -32,8 +32,8 @@ describe('uploads', () => {
 
     it('returns "<server><path>?token=<token>" when a server URL and media token are set', async () => {
       const client = await import('../client');
-      (client.getCurrentServerUrl as any).mockReturnValue('http://example.com');
-      (client.getCurrentMediaToken as any).mockReturnValue('tok123');
+      vi.mocked(client.getCurrentServerUrl).mockReturnValue('http://example.com');
+      vi.mocked(client.getCurrentMediaToken).mockReturnValue('tok123');
 
       const { getUploadUrl } = await import('../uploads');
       expect(getUploadUrl('/uploads/abc.jpg')).toBe('http://example.com/uploads/abc.jpg?token=tok123');
@@ -41,8 +41,8 @@ describe('uploads', () => {
 
     it('omits the query string when there is a server URL but no media token yet', async () => {
       const client = await import('../client');
-      (client.getCurrentServerUrl as any).mockReturnValue('http://example.com');
-      (client.getCurrentMediaToken as any).mockReturnValue(null);
+      vi.mocked(client.getCurrentServerUrl).mockReturnValue('http://example.com');
+      vi.mocked(client.getCurrentMediaToken).mockReturnValue(null);
 
       const { getUploadUrl } = await import('../uploads');
       expect(getUploadUrl('/uploads/abc.jpg')).toBe('http://example.com/uploads/abc.jpg');
@@ -50,8 +50,8 @@ describe('uploads', () => {
 
     it('rewrites to a -thumbnail.jpg sibling when variant is "thumbnail" and the extension is a convertible image type', async () => {
       const client = await import('../client');
-      (client.getCurrentServerUrl as any).mockReturnValue('http://example.com');
-      (client.getCurrentMediaToken as any).mockReturnValue('tok123');
+      vi.mocked(client.getCurrentServerUrl).mockReturnValue('http://example.com');
+      vi.mocked(client.getCurrentMediaToken).mockReturnValue('tok123');
 
       const { getUploadUrl } = await import('../uploads');
       expect(getUploadUrl('/uploads/abc.jpg', 'thumbnail')).toBe(
@@ -64,8 +64,8 @@ describe('uploads', () => {
 
     it('leaves gif and video paths unchanged even when variant is "thumbnail"', async () => {
       const client = await import('../client');
-      (client.getCurrentServerUrl as any).mockReturnValue('http://example.com');
-      (client.getCurrentMediaToken as any).mockReturnValue('tok123');
+      vi.mocked(client.getCurrentServerUrl).mockReturnValue('http://example.com');
+      vi.mocked(client.getCurrentMediaToken).mockReturnValue('tok123');
 
       const { getUploadUrl } = await import('../uploads');
       expect(getUploadUrl('/uploads/abc.gif', 'thumbnail')).toBe('http://example.com/uploads/abc.gif?token=tok123');
@@ -74,8 +74,8 @@ describe('uploads', () => {
 
     it('returns the plain path when no variant is passed, unchanged from before', async () => {
       const client = await import('../client');
-      (client.getCurrentServerUrl as any).mockReturnValue('http://example.com');
-      (client.getCurrentMediaToken as any).mockReturnValue('tok123');
+      vi.mocked(client.getCurrentServerUrl).mockReturnValue('http://example.com');
+      vi.mocked(client.getCurrentMediaToken).mockReturnValue('tok123');
 
       const { getUploadUrl } = await import('../uploads');
       expect(getUploadUrl('/uploads/abc.jpg')).toBe('http://example.com/uploads/abc.jpg?token=tok123');
@@ -85,14 +85,14 @@ describe('uploads', () => {
   describe('uploadFiles', () => {
     it('posts the batch as multipart, clearing the JSON content type', async () => {
       const client = await import('../client');
-      (client.api.post as any).mockResolvedValue({ data: { urls: ['/uploads/a.jpg', '/uploads/b.jpg'] } });
+      vi.mocked(client.api.post).mockResolvedValue({ data: { urls: ['/uploads/a.jpg', '/uploads/b.jpg'] } });
 
       const { uploadFiles, UPLOAD_TIMEOUT_MS } = await import('../uploads');
       const files = [new File(['a'], 'a.jpg'), new File(['b'], 'b.jpg')];
-      const urls = await uploadFiles(files as any);
+      const urls = await uploadFiles(files);
 
       expect(urls).toEqual(['/uploads/a.jpg', '/uploads/b.jpg']);
-      const [path, body, config] = (client.api.post as any).mock.calls[0];
+      const [path, body, config] = vi.mocked(client.api.post).mock.calls[0];
       expect(path).toBe('/uploads');
       // The whole batch goes in one request, and every part is named "file"
       // (the route walks every file part regardless of field name).
@@ -101,10 +101,10 @@ describe('uploads', () => {
       // Leaving the client's default application/json in place makes axios
       // serialize the FormData to JSON ({"file":{}}) and the route answers
       // 406 "the request is not multipart" — the bytes never leave at all.
-      expect(config.headers['Content-Type']).toBeUndefined();
-      expect('Content-Type' in config.headers).toBe(true);
+      expect(config!.headers!['Content-Type']).toBeUndefined();
+      expect('Content-Type' in config!.headers!).toBe(true);
       // A photo/video upload must not be held to the JSON-API timeout.
-      expect(config.timeout).toBe(UPLOAD_TIMEOUT_MS);
+      expect(config!.timeout).toBe(UPLOAD_TIMEOUT_MS);
       expect(UPLOAD_TIMEOUT_MS).toBeGreaterThan(60_000);
     });
   });
@@ -112,7 +112,7 @@ describe('uploads', () => {
   describe('refreshMediaToken', () => {
     it('retries once on failure and succeeds, without ever nulling the token', async () => {
       const client = await import('../client');
-      (client.api.get as any).mockRejectedValueOnce(new Error('network fail')).mockResolvedValueOnce({
+      vi.mocked(client.api.get).mockRejectedValueOnce(new Error('network fail')).mockResolvedValueOnce({
         data: { token: 'recovered-token' },
       });
 
@@ -126,7 +126,7 @@ describe('uploads', () => {
 
     it('keeps the cached token when both attempts fail', async () => {
       const client = await import('../client');
-      (client.api.get as any).mockRejectedValue(new Error('network fail'));
+      vi.mocked(client.api.get).mockRejectedValue(new Error('network fail'));
 
       const { refreshMediaToken } = await import('../uploads');
       await refreshMediaToken();
@@ -139,12 +139,12 @@ describe('uploads', () => {
 
     it('marks the token stale after a failed refresh so the next foreground retries', async () => {
       const client = await import('../client');
-      (client.api.get as any).mockRejectedValue(new Error('network fail'));
+      vi.mocked(client.api.get).mockRejectedValue(new Error('network fail'));
 
       const { refreshMediaToken, ensureFreshMediaToken } = await import('../uploads');
       await refreshMediaToken();
-      (client.api.get as any).mockClear();
-      (client.getCurrentMediaToken as any).mockReturnValue('stale-token');
+      vi.mocked(client.api.get).mockClear();
+      vi.mocked(client.getCurrentMediaToken).mockReturnValue('stale-token');
 
       await ensureFreshMediaToken();
 
@@ -153,7 +153,7 @@ describe('uploads', () => {
 
     it('succeeds on the first attempt without a second call', async () => {
       const client = await import('../client');
-      (client.api.get as any).mockResolvedValueOnce({ data: { token: 'first-try-token' } });
+      vi.mocked(client.api.get).mockResolvedValueOnce({ data: { token: 'first-try-token' } });
 
       const { refreshMediaToken } = await import('../uploads');
       await refreshMediaToken();
@@ -166,12 +166,12 @@ describe('uploads', () => {
   describe('ensureFreshMediaToken', () => {
     it('refetches when there is no media token yet, even if just fetched', async () => {
       const client = await import('../client');
-      (client.api.get as any).mockResolvedValue({ data: { token: 'a' } });
+      vi.mocked(client.api.get).mockResolvedValue({ data: { token: 'a' } });
       const { refreshMediaToken, ensureFreshMediaToken } = await import('../uploads');
 
       await refreshMediaToken(); // marks fetchedAt as "now" (fresh)
-      (client.getCurrentMediaToken as any).mockReturnValue(null); // but no token is actually present
-      (client.api.get as any).mockClear();
+      vi.mocked(client.getCurrentMediaToken).mockReturnValue(null); // but no token is actually present
+      vi.mocked(client.api.get).mockClear();
 
       await ensureFreshMediaToken();
       expect(client.api.get).toHaveBeenCalledTimes(1);
@@ -183,12 +183,12 @@ describe('uploads', () => {
       vi.setSystemTime(start);
 
       const client = await import('../client');
-      (client.api.get as any).mockResolvedValue({ data: { token: 'a' } });
-      (client.getCurrentMediaToken as any).mockReturnValue('a');
+      vi.mocked(client.api.get).mockResolvedValue({ data: { token: 'a' } });
+      vi.mocked(client.getCurrentMediaToken).mockReturnValue('a');
       const { refreshMediaToken, ensureFreshMediaToken } = await import('../uploads');
 
       await refreshMediaToken();
-      (client.api.get as any).mockClear();
+      vi.mocked(client.api.get).mockClear();
 
       vi.setSystemTime(new Date(start.getTime() + 25 * 60 * 60 * 1000));
       await ensureFreshMediaToken();
@@ -202,12 +202,12 @@ describe('uploads', () => {
       vi.setSystemTime(start);
 
       const client = await import('../client');
-      (client.api.get as any).mockResolvedValue({ data: { token: 'a' } });
-      (client.getCurrentMediaToken as any).mockReturnValue('a');
+      vi.mocked(client.api.get).mockResolvedValue({ data: { token: 'a' } });
+      vi.mocked(client.getCurrentMediaToken).mockReturnValue('a');
       const { refreshMediaToken, ensureFreshMediaToken } = await import('../uploads');
 
       await refreshMediaToken();
-      (client.api.get as any).mockClear();
+      vi.mocked(client.api.get).mockClear();
 
       vi.setSystemTime(new Date(start.getTime() + 60 * 60 * 1000)); // 1h later, still fresh
       await ensureFreshMediaToken();

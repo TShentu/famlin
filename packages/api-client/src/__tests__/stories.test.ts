@@ -11,7 +11,7 @@ describe('stories', () => {
 
   it('sends the group filter as a comma-separated groupIds param', async () => {
     const client = await import('../client');
-    (client.api.get as any).mockResolvedValue({ data: { authors: [] } });
+    vi.mocked(client.api.get).mockResolvedValue({ data: { authors: [] } });
 
     const { fetchStoryTray } = await import('../stories');
     await fetchStoryTray(['g1', 'g2']);
@@ -23,7 +23,7 @@ describe('stories', () => {
 
   it('pages Highlights with a cursor', async () => {
     const client = await import('../client');
-    (client.api.get as any).mockResolvedValue({ data: { items: [], nextCursor: null } });
+    vi.mocked(client.api.get).mockResolvedValue({ data: { items: [], nextCursor: null } });
 
     const { fetchStoryHighlights } = await import('../stories');
     await fetchStoryHighlights(['g1'], 'cur');
@@ -32,7 +32,7 @@ describe('stories', () => {
 
   it('posts a reaction and a reply', async () => {
     const client = await import('../client');
-    (client.api.post as any).mockResolvedValue({ data: { myReaction: 'LOVE' } });
+    vi.mocked(client.api.post).mockResolvedValue({ data: { myReaction: 'LOVE' } });
 
     const { reactToStory, replyToStory } = await import('../stories');
     expect(await reactToStory('s1', 'LOVE')).toEqual({ myReaction: 'LOVE' });

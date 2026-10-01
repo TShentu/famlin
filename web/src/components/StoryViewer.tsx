@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { FormEvent, useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -55,7 +55,7 @@ export function StoryViewer({
   const [replyError, setReplyError] = useState<string | null>(null);
 
   const base = sequences[position.seq]?.[position.idx];
-  const story = base ? { ...base, ...overrides[base.id] } : undefined;
+  const story = useMemo(() => base ? { ...base, ...overrides[base.id] } : undefined, [base, overrides]);
   const paused = hovering || typing || insightsOpen;
 
   const goNext = useCallback(() => {
@@ -93,6 +93,7 @@ export function StoryViewer({
   }, [paused, story]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Advance playback in response to the external interval timer.
     if (elapsed >= STORY_DURATION_MS) goNext();
   }, [elapsed, goNext]);
 
