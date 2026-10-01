@@ -10,7 +10,7 @@
 - Files upload auto-renames collisions on this device. The sync helper now stages unique names and uses checksum-verified atomic replacement in the development container.
 - Backend watching uses nodemon polling for the Files host mount; admin changes are watch-built and require browser refresh.
 
-The environment is intentionally private and has not been seeded with production users or media. Use `/admin/` for initial development-account setup. Source includes the file-selection snapshot fix, but an end-to-end video upload with that fix is not part of this hot-update validation.
+The environment is intentionally private and has not been seeded with production users or media. Use `/admin/` for initial development-account setup. The subsequent pre-merge smoke test below validates the file-selection snapshot fix end to end.
 
 ## Admin and server localization
 
@@ -28,3 +28,7 @@ The environment is intentionally private and has not been seeded with production
 - Backend, admin and mobile dependency audits have no known vulnerabilities after compatible updates. The mobile xcode UUID override preserves its v4 API and passes Expo's dependency alignment check.
 - Documentation dependencies were reduced from 32 audit findings to six high-severity findings, all stemming from Postman's pinned `@faker-js/faker` 5.5.3 dependency. This is a build-only toolchain that processes repository-owned OpenAPI input and is not included in the application image. The current Postman package still requires the old Faker API/locale paths; forcing a modern major version is not a compatible fix. The user explicitly accepted this residual risk before merge.
 - Retained upstream deprecation notices include Expo/Jest's legacy transitive packages, Postman's old Faker, and Prisma/pg's concurrent-client-query notice. Expected error-path test logs are not CI failures. These were not globally silenced.
+
+## Deployed smoke test
+
+On the isolated Famlin Dev instance, created a labeled CI smoke-test group and added the existing administrator. Published Chinese text with the user-provided MP4, confirmed the attachment survives selection and publishing, and verified the rendered video reports readyState 4, duration 107.64771 seconds, and no media error. Added a Chinese comment and confirmed the count becomes one. Backend and admin remained healthy after the dependency-refresh restart. Test data is labeled and retained in this development instance only.
