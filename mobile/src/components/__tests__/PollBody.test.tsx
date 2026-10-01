@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { act, render, fireEvent, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { Post } from '@/types';
@@ -75,7 +75,7 @@ const createdQueryClients: QueryClient[] = [];
 // @testing-library/react-native's render() is async (it renders under the
 // new concurrent-root test-renderer via act()) — every caller must await it.
 async function renderWithClient(ui: React.ReactElement) {
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity }, mutations: { gcTime: Infinity } } });
   createdQueryClients.push(queryClient);
   const result = await render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
   return { ...result, queryClient };
@@ -114,7 +114,10 @@ describe('PollBody', () => {
     const post = makePollPost();
     const { getByTestId } = await renderWithClient(<PollBody post={post} />);
 
-    fireEvent.press(getByTestId('poll-option-opt-1'));
+    await act(async () => {
+      await fireEvent.press(getByTestId('poll-option-opt-1'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
 
     // useMutation().mutate() dispatches asynchronously, so the mock call
     // doesn't land in the same tick as the press.
@@ -125,7 +128,10 @@ describe('PollBody', () => {
     const post = makePollPost();
     const { getByTestId } = await renderWithClient(<PollBody post={post} />);
 
-    fireEvent.press(getByTestId('poll-option-opt-2'));
+    await act(async () => {
+      await fireEvent.press(getByTestId('poll-option-opt-2'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
 
     await waitFor(() => expect(votePoll).toHaveBeenCalledWith('post-1', 'opt-2'));
   });
@@ -147,7 +153,10 @@ describe('PollBody', () => {
 
     expect(getByText('3 total votes · Poll closed')).toBeTruthy();
 
-    fireEvent.press(getByTestId('poll-option-opt-1'));
+    await act(async () => {
+      await fireEvent.press(getByTestId('poll-option-opt-1'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     expect(votePoll).not.toHaveBeenCalled();
   });
 

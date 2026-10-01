@@ -19,3 +19,12 @@ The environment is intentionally private and has not been seeded with production
 - Web/admin API requests send the selected Accept-Language. Unauthenticated read-only requests returned localized 401 errors for en, nl and zh-CN.
 - Admin and web TypeScript/Vite builds and server TypeScript checks passed. Admin ESLint has no errors when excluding macOS AppleDouble metadata (`--ignore-pattern "**/._*"`); existing upstream warnings remain.
 - Sync tolerates concurrent repeated exec calls: a missing staging file is accepted only when the destination checksum matches.
+
+## Pre-merge CI review — 2026-10-01
+
+- Source lint uses `--max-warnings 0` for web, API client, backend, admin and mobile. Replaced loose types, corrected dependencies and stale callbacks, and documented local exceptions for native imperative handles and external-input/loading effects rather than disabling rules globally.
+- Web: 111 tests; API client: 57 tests; mobile: 79 tests. Mobile tests now await asynchronous rendering/mutations, avoid native fetch initialization during teardown and disable test cache GC timers.
+- Updated Docker build Actions to their Node 24 releases, exported the CI build with `load`, migrated Vite/Docusaurus configuration and split React/i18n vendor bundles.
+- Backend, admin and mobile dependency audits have no known vulnerabilities after compatible updates. The mobile xcode UUID override preserves its v4 API and passes Expo's dependency alignment check.
+- Documentation dependencies were reduced from 32 audit findings to six high-severity findings, all stemming from Postman's pinned `@faker-js/faker` 5.5.3 dependency. This is a build-only toolchain that processes repository-owned OpenAPI input and is not included in the application image. The current Postman package still requires the old Faker API/locale paths; forcing a modern major version is not a compatible fix. The user explicitly accepted this residual risk before merge.
+- Retained upstream deprecation notices include Expo/Jest's legacy transitive packages, Postman's old Faker, and Prisma/pg's concurrent-client-query notice. Expected error-path test logs are not CI failures. These were not globally silenced.

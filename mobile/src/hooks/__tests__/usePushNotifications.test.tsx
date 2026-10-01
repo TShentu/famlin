@@ -35,7 +35,7 @@ describe('usePushNotifications', () => {
   it('does not attempt registration when there is no signed-in user', async () => {
     (useAuthStore as unknown as jest.Mock).mockImplementation((selector: any) => selector({ user: null }));
 
-    renderHook(() => usePushNotifications());
+    await renderHook(() => usePushNotifications());
 
     // Give any stray microtask a chance to run before asserting the negative.
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -51,7 +51,7 @@ describe('usePushNotifications', () => {
     (fetchNotificationConfig as jest.Mock).mockResolvedValue({ pushEnabled: true });
     (registerPushToken as jest.Mock).mockResolvedValue(undefined);
 
-    renderHook(() => usePushNotifications());
+    await renderHook(() => usePushNotifications());
 
     await waitFor(() => expect(registerPushToken).toHaveBeenCalledTimes(1));
 
@@ -66,7 +66,7 @@ describe('usePushNotifications', () => {
     );
     (fetchNotificationConfig as jest.Mock).mockResolvedValue({ pushEnabled: false });
 
-    renderHook(() => usePushNotifications());
+    await renderHook(() => usePushNotifications());
 
     await waitFor(() => expect(fetchNotificationConfig).toHaveBeenCalledTimes(1));
     // Let the (short-circuited) async path settle before asserting the negative.
@@ -81,7 +81,7 @@ describe('usePushNotifications', () => {
       notification: { request: { content: { data: { relatedPostId: null, relatedStoryId: 'story-9' } } } },
     });
 
-    renderHook(() => usePushNotifications());
+    await renderHook(() => usePushNotifications());
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('StoryViewer', { storyId: 'story-9' }));
   });
