@@ -111,6 +111,7 @@ def execute(args):
     restart = runtime.parent / 'devops-restart'
     if (state/'pending.json').exists():
         rollback(runtime, state)
+        (runtime.parent/'dependencies.sha256').unlink(missing_ok=True)
         atomic(restart, b'rollback\n')
         raise RuntimeError('Recovered interrupted source deployment; waiting for restart')
     found = candidate(args.branch, state)
@@ -190,6 +191,7 @@ def execute(args):
             else:
                 atomic(downloads/name, content)
         rollback(runtime, state)
+        (runtime.parent/'dependencies.sha256').unlink(missing_ok=True)
         atomic(restart, b'rollback\n')
         atomic(failure, json.dumps({'sourceCommit': commit, 'versionCode': code}).encode())
         raise

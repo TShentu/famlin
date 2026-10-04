@@ -6,6 +6,7 @@ cd /workspace/source
 export NODE_ENV=development
 locks=$(sha256sum package-lock.json backend/package-lock.json backend/admin/package-lock.json | sha256sum | cut -d' ' -f1)
 if [ "$(cat /workspace/dependencies.sha256 2>/dev/null || true)" != "$locks" ]; then
+  rm -f /workspace/dependencies.sha256
   npm ci --ignore-scripts --foreground-scripts --no-audit --no-fund
   npm run build:api-client
   (cd backend && npm ci --foreground-scripts --no-audit --no-fund)
