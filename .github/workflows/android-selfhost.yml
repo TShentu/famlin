@@ -4,15 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [main, codex/devops-zh]
-    paths:
-      - '.github/workflows/android-selfhost.yml'
-      - 'mobile/**'
-      - 'packages/api-client/**'
-      - 'backend/**'
-      - 'web/**'
-      - 'deploy/devops/**'
-      - 'deploy/olares/scripts/**'
-      - 'package*.json'
 
 permissions:
   contents: read

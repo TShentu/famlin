@@ -10,6 +10,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  devops:
+    name: Deployment integrity
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 -m unittest discover -s deploy/devops/scripts -p 'test_*.py'
+      - run: python3 deploy/devops/scripts/prepare-chart.py --verify
+
   changes:
     name: Detect changed paths
     runs-on: ubuntu-24.04
