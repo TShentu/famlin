@@ -29,6 +29,7 @@ jest.mock('react-i18next', () => ({
 }));
 
 jest.mock('@famlin/api-client', () => ({
+  ...jest.requireActual('@famlin/api-client'),
   votePoll: jest.fn(),
 }));
 

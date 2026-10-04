@@ -8,6 +8,11 @@ on:
       - '.github/workflows/android-selfhost.yml'
       - 'mobile/**'
       - 'packages/api-client/**'
+      - 'backend/**'
+      - 'web/**'
+      - 'deploy/devops/**'
+      - 'deploy/olares/scripts/**'
+      - 'package*.json'
 
 permissions:
   contents: read
@@ -74,6 +79,8 @@ jobs:
           "$BUILD_TOOLS/aapt" dump badging apk-artifact/famlin-family-unsigned.apk > apk-artifact/package-info.txt
           sha256sum apk-artifact/famlin-family-unsigned.apk > apk-artifact/SHA256SUMS
           git rev-parse HEAD > apk-artifact/source-commit.txt
+      - name: Package matching server source
+        run: python3 deploy/devops/scripts/pack-source.py --output apk-artifact/server-source.tgz
       - uses: actions/upload-artifact@v4
         with:
           name: famlin-family-apk-${{ github.run_number }}
