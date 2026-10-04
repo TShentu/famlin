@@ -26,11 +26,17 @@ function versionCodeFromVersion(version) {
   return getExpoMajorVersion() * 10000000 + major * 10000 + minor * 100 + patch;
 }
 
+const selfHosted = process.env.FAMLIN_SELF_HOSTED === "1";
+const selfHostedBuild = Number(process.env.FAMLIN_BUILD_NUMBER || "1");
+if (selfHosted && (!Number.isSafeInteger(selfHostedBuild) || selfHostedBuild < 1 || selfHostedBuild > 2100000000)) {
+  throw new Error("FAMLIN_BUILD_NUMBER must be a positive Android versionCode");
+}
+
 export default ({ config }) => ({
   ...config,
-  name: "Famlin",
+  name: selfHosted ? "Famlin 家庭相册" : "Famlin",
   slug: "famlin",
-  owner: "thexeroxs-team",
+  owner: selfHosted ? undefined : "thexeroxs-team",
   version: config.version,
   orientation: "default",
   icon: "./assets/icon.png",
@@ -59,19 +65,19 @@ export default ({ config }) => ({
     },
   },
   android: {
-    package: "be.xeweb.famlin",
-    versionCode: versionCodeFromVersion(config.version),
+    package: selfHosted ? "cn.olares.hzfystt.famlin" : "be.xeweb.famlin",
+    versionCode: selfHosted ? selfHostedBuild : versionCodeFromVersion(config.version),
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#006e94",
     },
     googleServicesFile:
-      config.android?.googleServicesFile ?? "./google-services.json",
+      selfHosted ? undefined : (config.android?.googleServicesFile ?? "./google-services.json"),
   },
   web: {
     favicon: "./assets/favicon.png",
   },
-  extra: {
+  extra: selfHosted ? {} : {
     eas: {
       projectId:
         process.env.EAS_PROJECT_ID || "42c3e9a8-50e3-4f19-a670-e9cb2766f3c9",

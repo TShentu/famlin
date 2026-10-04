@@ -1,0 +1,220 @@
+name: Android self-hosted APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_run:
+        description: 'Optional existing run with successful APK and Android smoke jobs (retry delivery without rebuilding)'
+        required: false
+        type: string
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-selfhost-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    if: inputs.candidate_run == ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      EXPO_PUBLIC_API_URL: https://762e7148.hzfystt.olares.cn
+      FAMLIN_SELF_HOSTED: '1'
+      FAMLIN_BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+      - run: npm ci
+      - run: npm ci
+        working-directory: mobile
+      - run: python3 -m unittest discover -s deploy/devops/scripts -p 'test_*.py'
+      - run: node web/scripts/check-zh.mjs
+      - run: npm run lint && npx tsc --noEmit && npm test -- --runInBand
+        working-directory: mobile
+      - run: npx expo install --check
+        working-directory: mobile
+      - run: npx expo prebuild --platform android --no-install
+        working-directory: mobile
+      - name: Keep signing on the local publishing machine
+        run: |
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          p = Path('mobile/android/app/build.gradle')
+          text = p.read_text()
+          marker = 'signingConfig signingConfigs.debug'
+          if marker not in text:
+              raise SystemExit('Unexpected Expo Gradle signing structure')
+          p.write_text(text.replace(marker, 'signingConfig null'))
+          PYCODE
+      - name: Build release APK
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a,x86_64
+      - name: Verify and collect APK
+        run: |
+          mkdir -p apk-artifact
+          cp mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk apk-artifact/famlin-family-unsigned.apk
+          BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          "$BUILD_TOOLS/aapt" dump badging apk-artifact/famlin-family-unsigned.apk > apk-artifact/package-info.txt
+          sha256sum apk-artifact/famlin-family-unsigned.apk > apk-artifact/SHA256SUMS
+          git rev-parse HEAD > apk-artifact/source-commit.txt
+      - name: Package matching server source
+        run: python3 deploy/devops/scripts/pack-source.py --output apk-artifact/server-source.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: famlin-family-apk-${{ github.run_number }}
+          path: apk-artifact/
+          retention-days: 30
+
+  android-smoke:
+    needs: apk
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: famlin-family-apk-${{ github.run_number }}
+          path: unsigned
+      - name: Sign a disposable emulator copy
+        run: |
+          mkdir -p smoke
+          keytool -genkeypair -keystore /tmp/smoke.jks -storepass android -keypass android -alias smoke -dname 'CN=CI Smoke' -keyalg RSA -validity 2
+          BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          "$BUILD_TOOLS/apksigner" sign --ks /tmp/smoke.jks --ks-pass pass:android --out smoke/app.apk unsigned/famlin-family-unsigned.apk
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: bash deploy/downloads/scripts/smoke-install.sh && python3 deploy/devops/scripts/smoke-language.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-zh-smoke-${{ github.run_number }}
+          path: |
+            smoke/*.png
+            smoke/*.xml
+            smoke/*.txt
+
+  stage:
+    if: ${{ !cancelled() && (inputs.candidate_run != '' || (needs.apk.result == 'success' && needs.android-smoke.result == 'success')) }}
+    needs: [apk, android-smoke]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Select the verified build
+        id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          CANDIDATE_RUN: ${{ inputs.candidate_run || github.run_id }}
+        run: |
+          [[ "$CANDIDATE_RUN" =~ ^[0-9]+$ ]]
+          gh api "repos/$REPO/actions/runs/$CANDIDATE_RUN" > candidate-run.json
+          gh api "repos/$REPO/actions/runs/$CANDIDATE_RUN/jobs?per_page=100" > candidate-jobs.json
+          python3 - <<'PYCODE'
+          import json, os
+          run=json.load(open('candidate-run.json'))
+          jobs=json.load(open('candidate-jobs.json'))['jobs']
+          assert run['path']=='.github/workflows/android-selfhost.yml'
+          assert run['head_repository']['full_name']==os.environ['REPO']
+          assert all(any(j['name']==name and j['conclusion']=='success' for j in jobs) for name in ['apk','android-smoke'])
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              for k,v in dict(SOURCE_SHA=run['head_sha'],SOURCE_BRANCH=run['head_branch'],RUN_NUMBER=run['run_number'],RUN_ID=run['id']).items():
+                  f.write(f'{k}={v}\n')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write(f"run_id={run['id']}\nrun_number={run['run_number']}\n")
+          PYCODE
+      - uses: actions/download-artifact@v4
+        with:
+          name: famlin-family-apk-${{ steps.candidate.outputs.run_number }}
+          run-id: ${{ steps.candidate.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: bundle
+      - name: Verify full CI and push the tested candidate to Olares
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_TOKEN: ${{ secrets.FAMLIN_DEPLOY_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          test -n "$DEPLOY_TOKEN"
+          CI_OK=false
+          for attempt in $(seq 1 30); do
+            gh api "repos/$REPO/actions/workflows/ci.yml/runs?per_page=50" > ci-runs.json
+            if python3 -c 'import json,os,sys; sys.exit(not any(r["head_sha"]==os.environ["SOURCE_SHA"] and r["conclusion"]=="success" for r in json.load(open("ci-runs.json"))["workflow_runs"]))'; then
+              CI_OK=true
+              break
+            fi
+            sleep 10
+          done
+          test "$CI_OK" = true
+          cd bundle
+          sha256sum famlin-family-unsigned.apk server-source.tgz package-info.txt source-commit.txt > checksums.txt
+          python3 - <<'PYCODE'
+          import os, json, tarfile
+          meta = dict(repository=os.environ['REPO'], branch=os.environ['SOURCE_BRANCH'], sourceCommit=os.environ['SOURCE_SHA'], runNumber=int(os.environ['RUN_NUMBER']), runUrl=f"https://github.com/{os.environ['REPO']}/actions/runs/{os.environ['RUN_ID']}")
+          with open('candidate.json','w') as f: json.dump(meta,f)
+          with tarfile.open('../candidate.tgz','w:gz') as tar:
+              for name in ['candidate.json','checksums.txt','famlin-family-unsigned.apk','server-source.tgz','package-info.txt','source-commit.txt']:
+                  tar.add(name,arcname=name)
+          PYCODE
+          cd ..
+          python3 deploy/devops/scripts/upload-candidate.py candidate.tgz
+          for attempt in $(seq 1 60); do
+            curl --silent --show-error --fail --max-time 20 \
+              -H "Authorization: Bearer $DEPLOY_TOKEN" \
+              https://08c91481.hzfystt.olares.cn/candidates > publish-status.json
+            STATUS=$(python3 -c 'import json,os; d=json.load(open("publish-status.json")); print("published" if d.get("published.json",{}).get("commit")==os.environ["SOURCE_SHA"] else "failed" if d.get("failed.json",{}).get("sourceCommit")==os.environ["SOURCE_SHA"] else "waiting")')
+            if [ "$STATUS" = published ]; then
+              cat publish-status.json
+              exit 0
+            fi
+            if [ "$STATUS" = failed ]; then
+              cat publish-status.json
+              exit 1
+            fi
+            sleep 10
+          done
+          echo 'Olares publication timed out'
+          exit 1

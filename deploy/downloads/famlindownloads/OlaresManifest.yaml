@@ -1,0 +1,39 @@
+olaresManifest.version: '0.12.0'
+olaresManifest.type: app
+apiVersion: v3
+metadata:
+  name: famlindownloads
+  appid: famlindownloads
+  title: Famlin Downloads
+  description: Download and install the family Android app
+  icon: https://app.cdn.olares.com/appstore/default/defaulticon.webp
+  version: 0.1.0
+  categories: [Utilities]
+entrances:
+- name: famlindownloads
+  host: famlindownloads
+  port: 8080
+  title: Famlin Downloads
+  authLevel: public
+  openMethod: window
+spec:
+  versionName: '1.0.0'
+  runAsUser: true
+  supportArch: [amd64]
+  requiredCpu: 10m
+  limitedCpu: 200m
+  requiredMemory: 32Mi
+  limitedMemory: 128Mi
+  requiredDisk: 1Gi
+permission:
+  userData:
+  - Home/Documents/FamlinDownloads
+options:
+  apiTimeout: 0
+  mobileSupported: true
+  dependencies:
+  - name: olares
+    type: system
+    version: '>=1.12.6-0'
+workloadReplicas:
+  famlindownloads: 1

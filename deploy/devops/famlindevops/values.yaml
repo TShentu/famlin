@@ -1,0 +1,4 @@
+workloads:
+  famlindevops:
+    replicaCount: 1
+branch: main

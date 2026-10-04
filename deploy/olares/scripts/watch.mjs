@@ -1,6 +1,11 @@
+import { existsSync, unlinkSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 const children = [];
 let stopping = false;
+const restartMarker = '/workspace/devops-restart';
+// Cleared only after bootstrap has installed changed locks and built the admin UI.
+if (existsSync(restartMarker)) unlinkSync(restartMarker);
+setInterval(() => { if (existsSync(restartMarker)) stop(0); }, 2000);
 function stop(code) {
   if (stopping) return;
   stopping = true;

@@ -17,7 +17,7 @@ entrances:
   port: 3000
   title: Famlin Dev
   icon: https://app.cdn.olares.com/appstore/default/defaulticon.webp
-  authLevel: private
+  authLevel: public
   openMethod: window
   windowPushState: true
 spec:
@@ -29,7 +29,7 @@ spec:
   sourceCode: https://github.com/TShentu/famlin
   doc: https://famlindev.app/docs
   fullDescription: |
-    Private source development environment for the Famlin fork. Vite hot reload and backend file watching; independent database and uploads. Source lives in Home/Documents/FamlinDev/source.
+    Public source development environment for the Famlin fork. Vite hot reload and backend file watching; independent database and uploads. Source lives in Home/Documents/FamlinDev/source.
   locale:
   - en-US
   license:

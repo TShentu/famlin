@@ -1,7 +1,7 @@
 {
   "common": {
     "appName": "Famlin",
-    "loading": "正在处理…",
+    "loading": "加载中…",
     "or": "或",
     "logout": "退出登录",
     "error": "出错了",
@@ -115,7 +115,7 @@
     "notifyNewLike": "点赞",
     "settings": "设置",
     "language": "语言",
-    "languageDescription": "选择界面语言",
+    "languageDescription": "选择你偏好的界面语言",
     "server": "服务器",
     "connectedTo": "已连接至",
     "serverVersion": "服务器版本 {{version}}",
