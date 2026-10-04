@@ -48,3 +48,13 @@ Run `python3 deploy/devops/scripts/prepare-chart.py`, lint/package the chart, th
 ## Upload credential
 
 `FAMLIN_DEPLOY_TOKEN` in repository Actions secrets must match the private `/state/deploy-token` file. Only `/candidates` bypasses the publisher entrance’s Olares login, and the application requires this bearer credential for both upload and status polling. The status homepage remains private. Do not place this token in the public APK directory or source repository. Rotate the two copies together if needed.
+
+## Dependency review (2026-10-04)
+
+The final review updated `@fastify/busboy` from 3.2.0 to 3.2.2 and `http-cache-semantics` from 4.2.0 to 4.3.0. Backend `npm audit --omit=dev` reports zero vulnerabilities. The following upstream toolchain advisories still have no published patched version at review time:
+
+- [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm): `braces` deeply nested pattern denial of service. Transitive through file watchers/build/test tools (including Dev nodemon), not imported by Famlin application source. This setup uses repository-controlled glob patterns; do not accept glob patterns from users or run untrusted repositories in the publisher.
+- [GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv): `node-forge` RSA signature validation. Present through Expo CLI code-signing tooling; Android publication uses Java apksigner, not this package. Expo OTA updates are not configured in this delivery flow.
+- The previously accepted Postman/Faker documentation-generator advisory remains. Documentation generation uses repository-controlled input and does not run in the app image.
+
+Audit totals include dependent packages, so one advisory can report many affected packages. These residual alerts are not fixed or suppressed; review their upstream patches separately.
