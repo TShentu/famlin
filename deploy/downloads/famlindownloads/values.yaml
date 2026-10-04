@@ -1,0 +1,3 @@
+workloads:
+  famlindownloads:
+    replicaCount: 1

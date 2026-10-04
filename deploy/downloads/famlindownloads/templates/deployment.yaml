@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: famlindownloads
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.workloads.famlindownloads.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: famlindownloads
+  template:
+    metadata:
+      labels:
+        app: famlindownloads
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/nginx.yaml") . | sha256sum }}
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+      - name: nginx
+        image: beclab/aboveos-nginx:1.27.0
+        command: [nginx, -c, /etc/famlin/nginx.conf, -g, 'daemon off;']
+        ports:
+        - name: http
+          containerPort: 8080
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}
+          limits: {cpu: 200m, memory: 128Mi}
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+        livenessProbe:
+          httpGet: {path: /healthz, port: http}
+        volumeMounts:
+        - name: downloads
+          mountPath: /srv/downloads
+          readOnly: true
+        - name: config
+          mountPath: /etc/famlin
+          readOnly: true
+      volumes:
+      - name: downloads
+        hostPath:
+          path: '{{ .Values.userspace.userData }}/Documents/FamlinDownloads'
+          type: DirectoryOrCreate
+      - name: config
+        configMap:
+          name: famlindownloads-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: famlindownloads
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector: {app: famlindownloads}
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
