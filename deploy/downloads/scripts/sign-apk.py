@@ -16,5 +16,5 @@ Path(a.output).parent.mkdir(parents=True, exist_ok=True)
 base = [a.java, '-jar', a.apksigner]
 subprocess.run(base+['sign', '--ks', a.keystore, '--ks-type', 'PKCS12',
     '--ks-key-alias', 'famlin', '--ks-pass', 'file:'+a.password_file,
-    '--key-pass', 'file:'+a.password_file, '--out', a.output, a.input], check=True)
+    '--out', a.output, a.input], check=True)
 subprocess.run(base+['verify', '--verbose', '--print-certs', a.output], check=True)

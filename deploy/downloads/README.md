@@ -55,7 +55,7 @@ python deploy/downloads/scripts/prepare-release.py \
 
 Before publishing, verify the signature with `apksigner verify`, and check the versionCode is greater than the published one. Upload the immutable, uniquely named APK **first**, then verify a complete unauthenticated HTTPS download has the expected SHA-256. Promote `latest.json` and the HTML page only after verification. Do not overwrite a published APK filename with new bytes.
 
-Use Olares Files for uploads. Its backend may rename collisions, so never assume uploading `latest.json` overwrites it: explicitly use `files edit` for existing text metadata or a checksum-verified atomic replacement in the app's own container. Do not delete and reinstall the service to publish an APK.
+Use Olares Files for uploads. Its backend may rename collisions, so never assume uploading `latest.json` overwrites it: explicitly use `files edit` for existing text metadata (requires a terminal/editor). The serving container has a read-only data mount. Do not delete and reinstall the service to publish an APK.
 
 The QR code points to the permanent **page URL**, so printed/shared QR codes survive future versions. No third-party QR service is used. Only installation artifacts belong in this directory; never upload the signing directory, source archives, credentials or family photos.
 
