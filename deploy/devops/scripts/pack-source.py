@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a deterministic, manifest-verified runtime bundle from a Git commit."""
+"""Create a manifest-verified runtime bundle from a Git commit."""
 import argparse
 import hashlib
 import io

@@ -50,6 +50,7 @@ jobs:
       - run: npm ci
       - run: npm ci
         working-directory: mobile
+      - run: python3 -m unittest discover -s deploy/devops/scripts -p 'test_*.py'
       - run: node web/scripts/check-zh.mjs
       - run: npm run lint && npx tsc --noEmit && npm test -- --runInBand
         working-directory: mobile
