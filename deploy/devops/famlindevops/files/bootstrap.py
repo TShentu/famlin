@@ -97,6 +97,6 @@ if not (venv/'ready').exists():
     subprocess.run(['python3', '-m', 'venv', str(venv)], check=True)
     subprocess.run([str(venv/'bin/pip'), 'install', 'qrcode[pil]==8.2', 'pillow==11.3.0'], check=True)
     (venv/'ready').write_text('ready')
-status['phase'] = 'watching-tested-releases'
+status['phase'] = 'waiting-for-tested-candidates'
 args = [str(venv/'bin/python'), '/opt/famlin/deploy/devops/scripts/worker.py', '--state', '/state', '--source', '/workspace/source', '--downloads', '/downloads', '--java', str(java), '--apksigner', '/state/apksigner.jar', '--keystore', '/state/release.p12', '--password-file', '/state/password', '--branch', os.environ['RELEASE_BRANCH']]
 raise SystemExit(subprocess.call(args))

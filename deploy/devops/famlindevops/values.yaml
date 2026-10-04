@@ -1,4 +1,4 @@
 workloads:
   famlindevops:
     replicaCount: 1
-branch: codex/devops-zh
+branch: main

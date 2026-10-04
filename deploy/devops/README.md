@@ -2,7 +2,7 @@
 
 Targets are deliberately fixed to this family installation:
 
-- Source: `TShentu/famlin`; development branch `codex/devops-zh` until reviewed.
+- Source: `TShentu/famlin`; automatic delivery from `main` only.
 - APK page: https://c89009ed.hzfystt.olares.cn/
 - Server: https://762e7148.hzfystt.olares.cn/
 - Android package: `cn.olares.hzfystt.famlin`, same signing certificate as build 2.
@@ -17,7 +17,7 @@ Only candidates passing both Android smoke tests and the full repository CI are 
 
 `scripts/worker.py` is designed to run on a trusted, continuously available publisher. The `famlindevops` Olares chart runs this publisher on hzfystt. Signing files and state live in the app-private `Data/famlindevops` directory, separate from the public APK folder. It needs Python 3.9+, `qrcode[pil]`, Java 17 and the Android apksigner JAR. The existing certificate was retained. A checksum-pinned Java 17 runtime and a private Python environment are bootstrapped once in persistent app data. It receives authenticated build bundles from Actions rather than polling GitHub, because direct GitHub TLS from this Olares instance is unreliable. It needs neither a personal GitHub token nor Olares credentials.
 
-The Actions upload job checks both pipelines at the exact commit. The receiver requires the dedicated upload credential, verifies payload size/hash, and accepts only this repository and the configured development branch or main. It verifies artifact hashes, package name, versionCode and the existing certificate fingerprint, signs privately, uploads the immutable APK, and verifies an anonymous full download. It then applies verified runtime files, waits for server health, and promotes the download page and metadata. A deployment failure restores modified source and the previous download page. `failed.json` prevents repeatedly applying a failing candidate; investigate before removing it to retry.
+The Actions upload job checks both pipelines at the exact commit. The receiver requires the dedicated upload credential, verifies payload size/hash, and accepts only this repository and main (the development branch override is used only during initial validation). It verifies artifact hashes, package name, versionCode and the existing certificate fingerprint, signs privately, uploads the immutable APK, and verifies an anonymous full download. It then applies verified runtime files, waits for server health, and promotes the download page and metadata. A deployment failure restores modified source and the previous download page. `failed.json` prevents repeatedly applying a failing candidate; investigate before removing it to retry.
 
 The keystore, password file and worker state must be outside the public download directory. Preserve the existing certificate; changing it prevents users from installing an update over their existing application.
 
@@ -39,7 +39,7 @@ node web/scripts/check-zh.mjs
 python3 -m unittest discover -s deploy/devops/scripts -p 'test_*.py'
 ```
 
-Current local results: 433 mobile locale keys, 82 mobile tests, and 6 deployment integrity/rollback tests. Android device results and final deployment provenance must be recorded after the actual pipeline finishes; a successful Metro or APK build alone is not a launch test.
+Validated: 433 mobile locale keys, 82 mobile tests, and 6 deployment integrity/rollback tests. Android 15 emulator runs verify all three language options, Chinese persistence after restart, and connection to the actual Dev API. Physical ARM devices have not been tested. The authenticated publisher status and public `latest.json` record the deployed commit and build number.
 
 ## Publisher chart updates
 
