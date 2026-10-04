@@ -37,3 +37,9 @@ adb('shell', 'am', 'start', '-W', '-n', 'cn.olares.hzfystt.famlin/.MainActivity'
 time.sleep(5)
 assert any(n.get('text') == '继续' for n in screen('zh-restart').iter('node'))
 print('English/Dutch/Chinese switching, Dev server default and persistence passed on Android.')
+# A native request must reach Famlin JSON rather than an Olares browser login.
+tap('继续')
+time.sleep(5)
+texts = [n.get('text', '') for n in screen('zh-server-connected').iter('node')]
+assert '邮箱' in texts and '密码' in texts and '登录' in texts, texts
+print('Native Android client connected to the configured Famlin Dev API.')

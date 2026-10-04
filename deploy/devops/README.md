@@ -29,7 +29,7 @@ New or changed database migrations deliberately stop automatic deployment. Revie
 
 ## Network requirement
 
-The current Dev entrance uses Olares authentication. A native client cannot use a browser's Olares session automatically. Member API/media paths therefore need an explicitly approved policy allowing Famlin's own authentication, or the client needs an independently verified LarePass access route. Do not make the Vite source server or admin routes anonymous to solve this.
+The owner explicitly authorized the entire Dev entrance to be Public on 2026-10-04. Native clients connect directly and Famlin still checks its application accounts/tokens. This exposes the development frontend/source routes too; use only this independent development instance. The production Famlin entrance is unchanged.
 
 ## Verification
 

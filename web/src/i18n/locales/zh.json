@@ -1,7 +1,7 @@
 {
   "common": {
     "appName": "Famlin",
-    "loading": "正在处理…",
+    "loading": "加载中…",
     "or": "或",
     "logout": "退出登录",
     "error": "出错了",
