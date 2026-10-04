@@ -32,7 +32,7 @@ class WorkerTests(unittest.TestCase):
                     'package-info.txt': b"package: name='cn.olares.hzfystt.famlin' versionCode='9' versionName='0.7.0'"}
             data['checksums.txt'] = '\n'.join(f'{hashlib.sha256(v).hexdigest()}  {k}' for k, v in data.items()).encode()
             prefix = f'https://github.com/{worker.REPO}/releases/download/dev-build-9/'
-            release = {'assets': [{'name': k, 'browser_download_url': prefix+k, 'size': len(v)} for k, v in data.items()]}
+            release = {'assets': [{'name': k, 'data': v, 'size': len(v)} for k, v in data.items()]}
             def request(url):
                 if url == worker.PUBLIC+'/latest.json':
                     return b'{"versionCode":2}'
@@ -61,6 +61,40 @@ class WorkerTests(unittest.TestCase):
             self.assertEqual((public/'index.html').read_text(), 'old page')
             self.assertTrue((base/'state/failed.json').exists())
             self.assertFalse((base/'state/pending.json').exists())
+
+class CandidateTests(unittest.TestCase):
+    def test_rejects_archive_paths_before_writing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state/'inbox').mkdir()
+            with tarfile.open(state/'inbox/bad.tgz', 'w:gz') as tar:
+                entry = tarfile.TarInfo('../escape')
+                entry.size = 1
+                tar.addfile(entry, io.BytesIO(b'x'))
+            self.assertIsNone(worker.candidate('main', state))
+            self.assertFalse((state/'escape').exists())
+            self.assertTrue((state/'rejected/bad.tgz').exists())
+
+    def test_ingests_only_allowed_repository_and_branch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state/'inbox').mkdir()
+            metadata = {'repository': worker.REPO, 'branch': 'untrusted', 'runNumber': 9,
+                        'sourceCommit': 'a'*40, 'runUrl': 'https://github.com/TShentu/famlin/actions/runs/123'}
+            for branch in ['untrusted', 'main']:
+                metadata['branch'] = branch
+                entries = {name: b'x' for name in ['checksums.txt','famlin-family-unsigned.apk','server-source.tgz','package-info.txt','source-commit.txt']}
+                entries['candidate.json'] = json.dumps(metadata).encode()
+                with tarfile.open(state/f'inbox/{branch}.tgz', 'w:gz') as tar:
+                    for name, data in entries.items():
+                        entry = tarfile.TarInfo(name)
+                        entry.size = len(data)
+                        tar.addfile(entry, io.BytesIO(data))
+                result = worker.candidate('codex/devops-zh', state)
+                if branch == 'untrusted':
+                    self.assertIsNone(result)
+                else:
+                    self.assertEqual(result[0]['head_sha'], 'a'*40)
 
 
 if __name__ == '__main__':

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Pull only tested candidates; sign, verify, deploy source, then promote downloads.
+"""Receive authenticated, tested candidates; sign, verify, deploy source, then promote downloads.
 
 Runs on a trusted publisher, never on pull-request runners. Signing files and
-state must be outside DOWNLOAD_ROOT. No GitHub or Olares credential is needed.
+state must be outside DOWNLOAD_ROOT. No GitHub or Olares credential is needed by this worker.
 """
 import argparse
 import hashlib
@@ -31,31 +31,58 @@ def request(url):
         return response.read()
 
 
-def api(path):
-    return json.loads(request(f'https://api.github.com/repos/{REPO}/{path}'))
-
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def candidate(branch):
-    # Check BOTH the APK/emulator pipeline and the full monorepo CI at the exact SHA.
-    builds = api(f'actions/workflows/android-selfhost.yml/runs?branch={branch}&status=success&per_page=10')['workflow_runs']
-    checks = api(f'actions/workflows/ci.yml/runs?branch={branch}&status=success&per_page=20')['workflow_runs']
-    checked = {r['head_sha'] for r in checks if r['conclusion'] == 'success' and r['head_repository']['full_name'] == REPO}
-    for run in builds:
-        if run['head_sha'] in checked and run['head_repository']['full_name'] == REPO:
-            try:
-                release = api(f'releases/tags/dev-build-{run["run_number"]}')
-            except urllib.error.HTTPError as error:
-                if error.code == 404:
-                    continue  # A superseded build intentionally has no release.
-                raise
-            if release['draft'] or release['target_commitish'] != run['head_sha']:
-                raise ValueError('Release is not bound to the tested source commit')
-            return run, release
-    return None
+def candidate(branch, state):
+    import tarfile
+    inbox, queue = state/'inbox', state/'queue'
+    inbox.mkdir(exist_ok=True)
+    queue.mkdir(exist_ok=True)
+    required = {'candidate.json', 'checksums.txt', 'famlin-family-unsigned.apk', 'server-source.tgz', 'package-info.txt', 'source-commit.txt'}
+    for archive in inbox.glob('*.tgz'):
+        try:
+            values = {}
+            total = 0
+            with tarfile.open(archive, 'r:gz') as tar:
+                for item in tar:
+                    total += item.size
+                    if not item.isfile() or item.name not in required or item.name in values or total > 250_000_000:
+                        raise ValueError('Invalid delivery archive')
+                    values[item.name] = tar.extractfile(item).read()
+            if set(values) != required:
+                raise ValueError('Incomplete delivery')
+            meta = json.loads(values['candidate.json'])
+            code, commit = meta['runNumber'], meta['sourceCommit']
+            if (meta['repository'] != REPO or meta['branch'] not in {branch, 'main'}
+                    or not isinstance(code, int) or not 0 < code <= 2100000000
+                    or not re.fullmatch(r'[0-9a-f]{40}', commit)
+                    or not re.fullmatch(r'https://github.com/TShentu/famlin/actions/runs/[0-9]+', meta['runUrl'])):
+                raise ValueError('Untrusted candidate identity')
+            target = state / f'build-{code}'
+            target.mkdir(exist_ok=True)
+            for name, data in values.items():
+                if (target/name).exists() and (target/name).read_bytes() != data:
+                    raise ValueError('Build number collision')
+            for name, data in values.items():
+                atomic(target/name, data)
+            atomic(queue/f'{code}.json', values['candidate.json'])
+            archive.unlink()
+        except Exception as error:
+            rejected = state/'rejected'
+            rejected.mkdir(exist_ok=True)
+            archive.replace(rejected/archive.name)
+            print(f'Rejected delivery: {type(error).__name__}: {error}', flush=True)
+    candidates = [json.loads(p.read_text()) for p in queue.glob('*.json')]
+    if not candidates:
+        return None
+    meta = max(candidates, key=lambda m: m['runNumber'])
+    run = {'run_number': meta['runNumber'], 'head_sha': meta['sourceCommit'], 'html_url': meta['runUrl']}
+    root = state/f'build-{meta["runNumber"]}'
+    return run, {'assets': [{'name': name, 'data': (root/name).read_bytes(), 'size': (root/name).stat().st_size}
+                            for name in required - {'candidate.json'}]}
 
 
 def health(url, restart_marker, timeout=180):
@@ -86,11 +113,14 @@ def execute(args):
         rollback(runtime, state)
         atomic(restart, b'rollback\n')
         raise RuntimeError('Recovered interrupted source deployment; waiting for restart')
-    found = candidate(args.branch)
+    found = candidate(args.branch, state)
     if not found:
         return
     run, release = found
     code, commit = run['run_number'], run['head_sha']
+    prior = state/'published.json'
+    if prior.exists() and json.loads(prior.read_text())['versionCode'] >= code:
+        return
     published = json.loads(request(PUBLIC + '/latest.json'))
     if code <= published['versionCode']:
         return
@@ -102,10 +132,7 @@ def execute(args):
     expected = {'checksums.txt', 'famlin-family-unsigned.apk', 'server-source.tgz', 'package-info.txt', 'source-commit.txt'}
     assets = {a['name']: a for a in release['assets']}
     for name in expected:
-        url = assets[name]['browser_download_url']
-        if not url.startswith(f'https://github.com/{REPO}/releases/download/dev-build-{code}/'):
-            raise ValueError('Unexpected artifact URL')
-        data = request(url)
+        data = assets[name]['data']
         if len(data) != assets[name]['size']:
             raise ValueError('Incomplete asset')
         atomic(stage/name, data)
@@ -186,4 +213,4 @@ if __name__ == '__main__':
                 raise SystemExit(1)
         if args.once:
             break
-        time.sleep(300)
+        time.sleep(10)

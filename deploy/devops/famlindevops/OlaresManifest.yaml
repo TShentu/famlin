@@ -7,7 +7,7 @@ metadata:
   title: Famlin DevOps
   description: Verify and publish tested Famlin development releases
   icon: https://app.cdn.olares.com/appstore/default/defaulticon.webp
-  version: 0.1.3
+  version: 0.2.0
   categories: [Utilities]
 entrances:
 - name: famlindevops
@@ -31,6 +31,13 @@ permission:
   - Home/Documents/FamlinDev
   - Home/Documents/FamlinDownloads
 options:
+  apiTimeout: 600
+  policies:
+  - uriRegex: '^/candidates$'
+    level: public
+    oneTime: false
+    validDuration: 0s
+    entranceName: famlindevops
   dependencies:
   - name: olares
     type: system

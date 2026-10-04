@@ -11,13 +11,13 @@ Targets are deliberately fixed to this family installation:
 
 `android-selfhost.yml` builds the Android APK without release keys, includes ARM and x86_64 libraries, and bundles the exact matching Git source for the server. It tests locale parity, TypeScript, lint, unit tests, then installs a disposable-signed copy in Android 15. The emulator verifies English/Dutch/Chinese switching, the preset server address, and Chinese persistence after restarting the app. The disposable signature is never distributed.
 
-Only passing candidates become `dev-build-N` prereleases. Those APK assets are **unsigned and not installable**. Users install from the Olares page. The GitHub workflow run number remains the increasing Android versionCode; do not reset it or rename the workflow without accounting for published versionCodes.
+Only candidates passing both Android smoke tests and the full repository CI are pushed over HTTPS to the Olares publisher. A dedicated repository secret authorizes this upload; it has no GitHub API permissions and is not the Android signing key. The Actions job waits for the publisher to confirm the source commit was deployed before succeeding. Users install the signed APK from the Olares page. The GitHub workflow run number remains the increasing Android versionCode; do not reset it or rename the workflow without accounting for published versionCodes.
 
 ## Trusted publisher
 
-`scripts/worker.py` is designed to run on a trusted, continuously available publisher. The `famlindevops` Olares chart runs this publisher on hzfystt. Signing files and state live in the app-private `Data/famlindevops` directory, separate from the public APK folder. It needs Python 3.9+, `qrcode[pil]`, Java 17 and the Android apksigner JAR. The existing certificate was retained. A checksum-pinned Java 17 runtime and a private Python environment are bootstrapped once in persistent app data. It reads public GitHub data; it does not need a personal GitHub token or Olares credentials.
+`scripts/worker.py` is designed to run on a trusted, continuously available publisher. The `famlindevops` Olares chart runs this publisher on hzfystt. Signing files and state live in the app-private `Data/famlindevops` directory, separate from the public APK folder. It needs Python 3.9+, `qrcode[pil]`, Java 17 and the Android apksigner JAR. The existing certificate was retained. A checksum-pinned Java 17 runtime and a private Python environment are bootstrapped once in persistent app data. It receives authenticated build bundles from Actions rather than polling GitHub, because direct GitHub TLS from this Olares instance is unreliable. It needs neither a personal GitHub token nor Olares credentials.
 
-It accepts only an exact commit that passed both the Android pipeline and the full repository CI on the configured branch. It verifies artifact hashes, package name, versionCode and the existing certificate fingerprint, signs privately, uploads the immutable APK, and verifies an anonymous full download. It then applies verified runtime files, waits for server health, and promotes the download page and metadata. A deployment failure restores modified source and the previous download page. `failed.json` prevents repeatedly applying a failing candidate; investigate before removing it to retry.
+The Actions upload job checks both pipelines at the exact commit. The receiver requires the dedicated upload credential, verifies payload size/hash, and accepts only this repository and the configured development branch or main. It verifies artifact hashes, package name, versionCode and the existing certificate fingerprint, signs privately, uploads the immutable APK, and verifies an anonymous full download. It then applies verified runtime files, waits for server health, and promotes the download page and metadata. A deployment failure restores modified source and the previous download page. `failed.json` prevents repeatedly applying a failing candidate; investigate before removing it to retry.
 
 The keystore, password file and worker state must be outside the public download directory. Preserve the existing certificate; changing it prevents users from installing an update over their existing application.
 
@@ -39,8 +39,12 @@ node web/scripts/check-zh.mjs
 python3 -m unittest discover -s deploy/devops/scripts -p 'test_*.py'
 ```
 
-Current local results: 433 mobile locale keys, 82 mobile tests, and 4 deployment integrity/rollback tests. Android device results and final deployment provenance must be recorded after the actual pipeline finishes; a successful Metro or APK build alone is not a launch test.
+Current local results: 433 mobile locale keys, 82 mobile tests, and 6 deployment integrity/rollback tests. Android device results and final deployment provenance must be recorded after the actual pipeline finishes; a successful Metro or APK build alone is not a launch test.
 
 ## Publisher chart updates
 
 Run `python3 deploy/devops/scripts/prepare-chart.py`, lint/package the chart, then upgrade `famlindevops` through Olares Market. The chart code checksum rolls the publisher when its code changes. Keep a secure backup of the original signing directory; deleting the publisher app data would otherwise remove its signing copy. Check the private status entrance for the current phase, published commit, or failed candidate.
+
+## Upload credential
+
+`FAMLIN_DEPLOY_TOKEN` in repository Actions secrets must match the private `/state/deploy-token` file. Only `/candidates` bypasses the publisher entrance’s Olares login, and the application requires this bearer credential for both upload and status polling. The status homepage remains private. Do not place this token in the public APK directory or source repository. Rotate the two copies together if needed.

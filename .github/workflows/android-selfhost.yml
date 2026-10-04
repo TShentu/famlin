@@ -130,28 +130,66 @@ jobs:
   stage:
     needs: [apk, android-smoke]
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     permissions:
-      contents: write
+      contents: read
+      actions: read
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: famlin-family-apk-${{ github.run_number }}
           path: bundle
-      - name: Publish verified unsigned candidate for the deployment worker
+      - name: Verify full CI and push the tested candidate to Olares
         env:
           GH_TOKEN: ${{ github.token }}
+          DEPLOY_TOKEN: ${{ secrets.FAMLIN_DEPLOY_TOKEN }}
           REPO: ${{ github.repository }}
           SOURCE_SHA: ${{ github.sha }}
-          RUN_NUMBER: ${{ github.run_number }}
           SOURCE_BRANCH: ${{ github.ref_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          # A superseded SHA that changes workflows cannot create a release with
-          # GITHUB_TOKEN. Publish only the current branch head, never grant a PAT.
-          HEAD_SHA=$(gh api "repos/$REPO/commits/$SOURCE_BRANCH" --jq .sha)
-          if [ "$HEAD_SHA" != "$SOURCE_SHA" ]; then
-            echo 'Superseded candidate; a newer branch build will publish.'
-            exit 0
-          fi
+          test -n "$DEPLOY_TOKEN"
+          CI_OK=false
+          for attempt in $(seq 1 30); do
+            gh api "repos/$REPO/actions/workflows/ci.yml/runs?per_page=50" > ci-runs.json
+            if python3 -c 'import json,os,sys; sys.exit(not any(r["head_sha"]==os.environ["SOURCE_SHA"] and r["conclusion"]=="success" for r in json.load(open("ci-runs.json"))["workflow_runs"]))'; then
+              CI_OK=true
+              break
+            fi
+            sleep 10
+          done
+          test "$CI_OK" = true
           cd bundle
           sha256sum famlin-family-unsigned.apk server-source.tgz package-info.txt source-commit.txt > checksums.txt
-          gh release create "dev-build-${RUN_NUMBER}" --repo "$REPO" --target "$SOURCE_SHA" --prerelease --title "Dev build ${RUN_NUMBER}" --notes 'Unsigned build candidate. Install the signed APK from the Olares download page.' ./*
+          python3 - <<'PYCODE'
+          import os, json, tarfile
+          meta = dict(repository=os.environ['REPO'], branch=os.environ['SOURCE_BRANCH'], sourceCommit=os.environ['SOURCE_SHA'], runNumber=int(os.environ['RUN_NUMBER']), runUrl=f"https://github.com/{os.environ['REPO']}/actions/runs/{os.environ['RUN_ID']}")
+          with open('candidate.json','w') as f: json.dump(meta,f)
+          with tarfile.open('../candidate.tgz','w:gz') as tar:
+              for name in ['candidate.json','checksums.txt','famlin-family-unsigned.apk','server-source.tgz','package-info.txt','source-commit.txt']:
+                  tar.add(name,arcname=name)
+          PYCODE
+          cd ..
+          HASH=$(sha256sum candidate.tgz | cut -d ' ' -f1)
+          curl --fail-with-body --retry 3 --retry-all-errors --max-time 600 \
+            -H "Authorization: Bearer $DEPLOY_TOKEN" -H "X-Content-SHA256: $HASH" \
+            -H 'Content-Type: application/gzip' --data-binary @candidate.tgz \
+            https://08c91481.hzfystt.olares.cn/candidates
+          for attempt in $(seq 1 60); do
+            curl --silent --show-error --fail --max-time 20 \
+              -H "Authorization: Bearer $DEPLOY_TOKEN" \
+              https://08c91481.hzfystt.olares.cn/candidates > publish-status.json
+            STATUS=$(python3 -c 'import json,os; d=json.load(open("publish-status.json")); print("published" if d.get("published.json",{}).get("commit")==os.environ["SOURCE_SHA"] else "failed" if d.get("failed.json",{}).get("sourceCommit")==os.environ["SOURCE_SHA"] else "waiting")')
+            if [ "$STATUS" = published ]; then
+              cat publish-status.json
+              exit 0
+            fi
+            if [ "$STATUS" = failed ]; then
+              cat publish-status.json
+              exit 1
+            fi
+            sleep 10
+          done
+          echo 'Olares publication timed out'
+          exit 1

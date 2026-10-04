@@ -1,3 +1,6 @@
+import hmac
+import uuid
+import re
 import hashlib
 import http.server
 import json
@@ -13,7 +16,55 @@ state = Path('/state')
 state.mkdir(exist_ok=True)
 status = {'phase': 'waiting-for-private-signing-files'}
 class Handler(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        if self.path != '/candidates':
+            self.send_error(404)
+            return
+        key = state/'deploy-token'
+        if not key.exists() or not hmac.compare_digest(self.headers.get('Authorization', '').encode(), ('Bearer '+key.read_text().strip()).encode()):
+            self.close_connection = True
+            self.send_error(401, 'Publisher authentication required')
+            return
+        checksum = self.headers.get('X-Content-SHA256', '')
+        try:
+            length = int(self.headers.get('Content-Length', '0'))
+        except ValueError:
+            length = 0
+        if not 0 < length <= 200_000_000 or not re.fullmatch(r'[0-9a-f]{64}', checksum):
+            self.send_error(400, 'Invalid delivery size or checksum')
+            return
+        inbox = state/'inbox'
+        inbox.mkdir(exist_ok=True)
+        temp = inbox/(uuid.uuid4().hex+'.partial')
+        try:
+            self.connection.settimeout(60)
+            digest = hashlib.sha256()
+            with temp.open('wb') as f:
+                while length:
+                    chunk = self.rfile.read(min(1024*1024, length))
+                    if not chunk:
+                        raise ValueError('Incomplete delivery')
+                    f.write(chunk)
+                    digest.update(chunk)
+                    length -= len(chunk)
+                f.flush()
+                os.fsync(f.fileno())
+            if not hmac.compare_digest(digest.hexdigest(), checksum):
+                raise ValueError('Delivery checksum mismatch')
+            temp.replace(temp.with_suffix('.tgz'))
+            self.send_response(202)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"queued":true}')
+        except Exception:
+            temp.unlink(missing_ok=True)
+            self.send_error(400, 'Invalid delivery')
     def do_GET(self):
+        if self.path == '/candidates':
+            key = state/'deploy-token'
+            if not key.exists() or not hmac.compare_digest(self.headers.get('Authorization', '').encode(), ('Bearer '+key.read_text().strip()).encode()):
+                self.send_error(401, 'Publisher authentication required')
+                return
         data = dict(status)
         for name in ['published.json', 'failed.json']:
             path = state/name
@@ -26,8 +77,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
     def log_message(self, *_args):
         pass
-threading.Thread(target=http.server.HTTPServer(('0.0.0.0', 8080), Handler).serve_forever, daemon=True).start()
-while not all((state/name).exists() for name in ['release.p12', 'password', 'apksigner.jar']):
+threading.Thread(target=http.server.ThreadingHTTPServer(('0.0.0.0', 8080), Handler).serve_forever, daemon=True).start()
+while not all((state/name).exists() for name in ['release.p12', 'password', 'apksigner.jar', 'deploy-token']):
     time.sleep(5)
 status['phase'] = 'preparing-toolchain'
 java = state/'jdk-17.0.20.1+1-jre/bin/java'
