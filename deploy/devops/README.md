@@ -15,7 +15,7 @@ Only passing candidates become `dev-build-N` prereleases. Those APK assets are *
 
 ## Trusted publisher
 
-`scripts/worker.py` is designed to run on a trusted, continuously available publisher. Deployment of that worker and its private key location must be configured before the loop is automatic. It needs Python 3.9+, `qrcode[pil]`, Java 17 and the Android apksigner JAR. It reads public GitHub data; it does not need a personal GitHub token or Olares credentials.
+`scripts/worker.py` is designed to run on a trusted, continuously available publisher. The `famlindevops` Olares chart runs this publisher on hzfystt. Signing files and state live in the app-private `Data/famlindevops` directory, separate from the public APK folder. It needs Python 3.9+, `qrcode[pil]`, Java 17 and the Android apksigner JAR. The existing certificate was retained. A checksum-pinned Java 17 runtime and a private Python environment are bootstrapped once in persistent app data. It reads public GitHub data; it does not need a personal GitHub token or Olares credentials.
 
 It accepts only an exact commit that passed both the Android pipeline and the full repository CI on the configured branch. It verifies artifact hashes, package name, versionCode and the existing certificate fingerprint, signs privately, uploads the immutable APK, and verifies an anonymous full download. It then applies verified runtime files, waits for server health, and promotes the download page and metadata. A deployment failure restores modified source and the previous download page. `failed.json` prevents repeatedly applying a failing candidate; investigate before removing it to retry.
 
@@ -40,3 +40,7 @@ python3 -m unittest discover -s deploy/devops/scripts -p 'test_*.py'
 ```
 
 Current local results: 433 mobile locale keys, 82 mobile tests, and 4 deployment integrity/rollback tests. Android device results and final deployment provenance must be recorded after the actual pipeline finishes; a successful Metro or APK build alone is not a launch test.
+
+## Publisher chart updates
+
+Run `python3 deploy/devops/scripts/prepare-chart.py`, lint/package the chart, then upgrade `famlindevops` through Olares Market. The chart code checksum rolls the publisher when its code changes. Keep a secure backup of the original signing directory; deleting the publisher app data would otherwise remove its signing copy. Check the private status entrance for the current phase, published commit, or failed candidate.

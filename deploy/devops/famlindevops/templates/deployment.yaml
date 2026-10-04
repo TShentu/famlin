@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: famlindevops-code
+  namespace: {{ .Release.Namespace }}
+data:
+{{- range $path, $_ := .Files.Glob "files/**" }}
+  {{ base $path }}: |
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: famlindevops
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.workloads.famlindevops.replicaCount }}
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: famlindevops}
+  template:
+    metadata:
+      labels: {app: famlindevops}
+      annotations:
+        checksum/code: {{ (.Files.Glob "files/**").AsConfig | sha256sum }}
+    spec:
+      enableServiceLinks: false
+      securityContext: {runAsUser: 1000, runAsGroup: 1000}
+      containers:
+      - name: publisher
+        image: python:3.12-slim-bookworm@sha256:9901e0a8d75037d8242ed43155cbcb2d1f61be1356383d8054afb59fd50e39c4
+        command: [python3, /opt/famlin/bootstrap.py]
+        env:
+        - {name: HOME, value: /state}
+        - {name: PYTHONDONTWRITEBYTECODE, value: '1'}
+        - {name: RELEASE_BRANCH, value: {{ .Values.branch | quote }}}
+        ports:
+        - {name: http, containerPort: 8080}
+        readinessProbe:
+          httpGet: {path: /, port: http}
+        resources:
+          requests: {cpu: 50m, memory: 128Mi}
+          limits: {cpu: '1', memory: 1Gi}
+        volumeMounts:
+        - {name: state, mountPath: /state}
+        - {name: source, mountPath: /workspace}
+        - {name: downloads, mountPath: /downloads}
+        - {name: code, mountPath: /opt/famlin, readOnly: true}
+      volumes:
+      - name: state
+        hostPath: {path: '{{ .Values.userspace.appData }}', type: DirectoryOrCreate}
+      - name: source
+        hostPath: {path: '{{ .Values.userspace.userData }}/Documents/FamlinDev', type: Directory}
+      - name: downloads
+        hostPath: {path: '{{ .Values.userspace.userData }}/Documents/FamlinDownloads', type: Directory}
+      - name: code
+        configMap:
+          name: famlindevops-code
+          items:
+{{- range $path, $_ := .Files.Glob "files/**" }}
+          - key: {{ base $path }}
+            path: {{ trimPrefix "files/" $path }}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: famlindevops
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector: {app: famlindevops}
+  ports:
+  - {name: http, port: 8080, targetPort: http}

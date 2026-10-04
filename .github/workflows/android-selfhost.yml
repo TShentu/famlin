@@ -47,6 +47,8 @@ jobs:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
       - run: npm ci
       - run: npm ci
         working-directory: mobile
@@ -150,7 +152,15 @@ jobs:
           REPO: ${{ github.repository }}
           SOURCE_SHA: ${{ github.sha }}
           RUN_NUMBER: ${{ github.run_number }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
         run: |
+          # A superseded SHA that changes workflows cannot create a release with
+          # GITHUB_TOKEN. Publish only the current branch head, never grant a PAT.
+          HEAD_SHA=$(gh api "repos/$REPO/commits/$SOURCE_BRANCH" --jq .sha)
+          if [ "$HEAD_SHA" != "$SOURCE_SHA" ]; then
+            echo 'Superseded candidate; a newer branch build will publish.'
+            exit 0
+          fi
           cd bundle
           sha256sum famlin-family-unsigned.apk server-source.tgz package-info.txt source-commit.txt > checksums.txt
           gh release create "dev-build-${RUN_NUMBER}" --repo "$REPO" --target "$SOURCE_SHA" --prerelease --title "Dev build ${RUN_NUMBER}" --notes 'Unsigned build candidate. Install the signed APK from the Olares download page.' ./*
