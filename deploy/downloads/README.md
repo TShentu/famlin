@@ -66,3 +66,9 @@ Verify anonymous HTTPS access, MIME type, Content-Disposition, file size, full-d
 ## Phase 2
 
 Add a small client updater consuming `latest.json`: compare versionCode, show release notes, download the APK, validate size/hash, and hand off to Android's package installer. Keep this HTTPS endpoint stable and maintain the same package and signing key. An updater cannot silently replace packages on arbitrary personal phones. Native feature changes still require an APK even if JavaScript OTA updates are introduced later.
+
+## In-app Android updates
+
+Self-hosted APKs check this site's `latest.json` after startup and on foreground (at most once every six hours per process). A newer Android `versionCode` prompts with its source commit and opens its exact APK URL in the browser after confirmation. Profile → Check for updates bypasses the interval and reports offline/latest/incompatible states. Automatic failures are silent. Only the fixed HTTPS distribution origin, expected package and schema, and compatible Android SDK are accepted; no login token is sent. Android still asks the user to install the downloaded APK. Existing installations without this feature need one manual upgrade first.
+
+The installed build number and source commit are embedded at build time; a different source SHA alone never triggers a downgrade. Upstream store builds and iOS do not use this self-hosted updater.

@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
+import { checkForAppUpdate, updatesEnabled } from '@/utils/appUpdates';
 
 import { colors } from '@/constants/colors';
 import { Logo } from '@/components/Logo';
@@ -303,10 +304,15 @@ export function ProfileScreen() {
             <View style={styles.appInfoText}>
               <Text style={styles.appName}>{t('common.appName')}</Text>
               <Text style={styles.appVersion}>
-                {t('profile.version', { version: Constants.expoConfig?.version ?? t('common.unknown') })}
+                {t('profile.version', { version: Constants.expoConfig?.extra?.sourceCommit?.slice(0, 7) || Constants.expoConfig?.version || t('common.unknown') })}
               </Text>
             </View>
           </View>
+          {updatesEnabled() && (
+            <TouchableOpacity style={styles.settingItem} onPress={() => void checkForAppUpdate(true)} accessibilityRole="button">
+              <Text style={styles.languageValue}>{t('updates.check')}</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={logout}>

@@ -77,7 +77,7 @@ export default ({ config }) => ({
   web: {
     favicon: "./assets/favicon.png",
   },
-  extra: selfHosted ? {} : {
+  extra: selfHosted ? { selfHosted: true, sourceCommit: process.env.GITHUB_SHA || "" } : {
     eas: {
       projectId:
         process.env.EAS_PROJECT_ID || "42c3e9a8-50e3-4f19-a670-e9cb2766f3c9",

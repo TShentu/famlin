@@ -33,6 +33,7 @@ import { colors } from '@/constants/colors';
 import { ActivityIndicator, View, AppState } from 'react-native';
 import { initApiBaseUrl, setUnauthorizedHandler, setStorageAdapter } from '@/api/client';
 import { fetchMe } from '@/api/auth';
+import { useAppUpdates } from '@/hooks/useAppUpdates';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { getServerUrl, mobileStorageAdapter } from '@/utils/storage';
 import { ensureFreshMediaToken } from '@/api/uploads';
@@ -89,6 +90,7 @@ function AppContent() {
   });
 
   usePushNotifications();
+  useAppUpdates(!initializing && fontsLoaded);
 
   useEffect(() => {
     // The rest of the app is built for portrait only; the fullscreen media

@@ -535,5 +535,17 @@
     "remove": "Verwijderen",
     "share": "Delen",
     "shareFailed": "Je verhaal kon niet worden gedeeld."
+  },
+  "updates": {
+    "title": "App-updates",
+    "check": "Controleren op updates",
+    "current": "Je gebruikt de nieuwste versie.",
+    "available": "Update beschikbaar",
+    "message": "Versie {{commit}} is beschikbaar. Download de APK in je browser en open deze om de huidige app bij te werken. Je gegevens blijven bewaard.",
+    "later": "Later",
+    "download": "Update downloaden",
+    "failed": "Controleren op updates is mislukt. Probeer het opnieuw.",
+    "openFailed": "De downloadlink kon niet worden geopend. Probeer het opnieuw.",
+    "incompatible": "Deze update vereist een nieuwere Android-versie."
   }
 }
