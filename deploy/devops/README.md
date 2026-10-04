@@ -60,3 +60,9 @@ The final review updated `@fastify/busboy` from 3.2.0 to 3.2.2 and `http-cache-s
 Audit totals include dependent packages, so one advisory can report many affected packages. These residual alerts are not fixed or suppressed; review their upstream patches separately.
 
 Delivery uses 1 MiB chunks over up to 16 parallel authenticated connections, verifies the assembled SHA-256, and queues only the complete bundle. The Android workflow accepts an optional `candidate_run` when manually dispatched to retry delivery of an existing APK without recompiling. Both successful APK/smoke jobs and matching repository CI are verified again; the publisher still enforces its allowed branch and increasing versionCode.
+
+## Dependency-download recovery
+
+On this Olares instance `registry.npmjs.org` failed DNS resolution. The app-scoped, persistent `/workspace/.npmrc` uses `registry=https://registry.npmmirror.com` and `prefer-offline=true`; downloaded packages still must match the committed lockfile integrity. This setting does not modify system DNS. The mirror's busboy 3.2.2 tarball was verified against the lockfile SHA-512 before use.
+
+Dependency installation invalidates its completion marker before modifying node_modules. Rollback also invalidates the marker so a interrupted install cannot make the restored lockfile incorrectly skip reinstalling missing packages.

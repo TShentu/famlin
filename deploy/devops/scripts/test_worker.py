@@ -17,6 +17,7 @@ class WorkerTests(unittest.TestCase):
             source, public = base/'source', base/'public'
             (source/'web').mkdir(parents=True)
             public.mkdir()
+            (base/'dependencies.sha256').write_text('old completed install')
             (source/'web/test.ts').write_text('old source')
             for name in ['latest.json', 'index.html']:
                 (public/name).write_text('old page')
@@ -61,6 +62,7 @@ class WorkerTests(unittest.TestCase):
             self.assertEqual((public/'index.html').read_text(), 'old page')
             self.assertTrue((base/'state/failed.json').exists())
             self.assertFalse((base/'state/pending.json').exists())
+            self.assertFalse((base/'dependencies.sha256').exists())
 
 class CandidateTests(unittest.TestCase):
     def test_rejects_archive_paths_before_writing(self):
