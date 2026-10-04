@@ -1,4 +1,5 @@
-import { setApiBaseUrl, getCurrentServerUrl } from '@famlin/api-client';
+import i18n from 'i18next';
+import { api, setApiBaseUrl, getCurrentServerUrl } from '@famlin/api-client';
 
 export * from '@famlin/api-client';
 
@@ -12,3 +13,9 @@ const DEFAULT_API_URL = process.env.EXPO_PUBLIC_API_URL;
 if (DEFAULT_API_URL && !getCurrentServerUrl()) {
   setApiBaseUrl(DEFAULT_API_URL);
 }
+
+// Match backend validation/error messages to the current UI language.
+api.interceptors.request.use(config => {
+  config.headers.set('Accept-Language', i18n.language);
+  return config;
+});

@@ -3,7 +3,7 @@ name: Android self-hosted APK
 on:
   workflow_dispatch:
   push:
-    branches: [codex/android-selfhost]
+    branches: [main, codex/devops-zh]
     paths:
       - '.github/workflows/android-selfhost.yml'
       - 'mobile/**'
@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
+      EXPO_PUBLIC_API_URL: https://762e7148.hzfystt.olares.cn
       FAMLIN_SELF_HOSTED: '1'
       FAMLIN_BUILD_NUMBER: ${{ github.run_number }}
     steps:
@@ -44,6 +45,9 @@ jobs:
       - run: npm ci
       - run: npm ci
         working-directory: mobile
+      - run: node web/scripts/check-zh.mjs
+      - run: npm run lint && npx tsc --noEmit && npm test -- --runInBand
+        working-directory: mobile
       - run: npx expo install --check
         working-directory: mobile
       - run: npx expo prebuild --platform android --no-install
@@ -61,7 +65,7 @@ jobs:
           PYCODE
       - name: Build release APK
         working-directory: mobile/android
-        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a,x86_64
       - name: Verify and collect APK
         run: |
           mkdir -p apk-artifact

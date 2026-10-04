@@ -7,6 +7,7 @@ function flatten(object, prefix = '') {
     typeof value === 'object' ? Object.entries(flatten(value, `${prefix}${key}.`)) : [[prefix + key, value]]));
 }
 for (const [name, path] of [
+  ['mobile', '../../mobile/src/i18n/locales/'],
   ['web', '../src/i18n/locales/'],
   ['admin', '../../backend/admin/src/i18n/locales/'],
   ['server', '../../backend/src/i18n/locales/'],

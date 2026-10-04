@@ -12,7 +12,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { fetchOidcConfig, loginWithPassword, OidcConfig } from '@/api/auth';
 import { performOidcLogin, OidcCancelledError } from '@/utils/oidcLogin';
 import { useAppleSignInAvailable } from '@/utils/appleLogin';
-import { getServerUrl, setServerUrl as persistServerUrl } from '@/utils/storage';
+import { getServerUrl, setLanguage, setServerUrl as persistServerUrl } from '@/utils/storage';
+import i18n, { SUPPORTED_LANGUAGES } from '@/i18n';
 import { setApiBaseUrl } from '@/api/client';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -36,7 +37,7 @@ export function LoginScreen() {
   const { t } = useTranslation();
   const { setAuth } = useAuthStore();
   const [step, setStep] = useState<Step>('server');
-  const [serverUrl, setServerUrlInput] = useState('');
+  const [serverUrl, setServerUrlInput] = useState(process.env.EXPO_PUBLIC_API_URL || '');
   const [ssoConfig, setSsoConfig] = useState<OidcConfig | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -136,7 +137,15 @@ export function LoginScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, padding: 12 }}>
+        {SUPPORTED_LANGUAGES.map(lang => (
+          <TouchableOpacity key={lang} accessibilityRole="button" accessibilityState={{ selected: i18n.language === lang }}
+            onPress={async () => { await setLanguage(lang); await i18n.changeLanguage(lang); }}>
+            <Text style={{ color: colors.primary }}>{t(`profile.languages.${lang}`)}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
