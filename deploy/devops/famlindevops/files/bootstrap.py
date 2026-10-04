@@ -1,3 +1,4 @@
+from transfer import receive
 import hmac
 import uuid
 import re
@@ -32,6 +33,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
             length = 0
         if not 0 < length <= 200_000_000 or not re.fullmatch(r'[0-9a-f]{64}', checksum):
             self.send_error(400, 'Invalid delivery size or checksum')
+            return
+        if self.headers.get('X-Chunk-Index') is not None:
+            try:
+                self.connection.settimeout(180)
+                if length > 1024*1024:
+                    raise ValueError('Oversized chunk')
+                queued = receive(state, checksum, int(self.headers['X-Chunk-Index']),
+                                 int(self.headers['X-Chunk-Count']), int(self.headers['X-Total-Size']),
+                                 self.rfile.read(length))
+                self.send_response(202)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'queued': queued}).encode())
+            except Exception:
+                self.send_error(400, 'Invalid chunk')
             return
         inbox = state/'inbox'
         inbox.mkdir(exist_ok=True)

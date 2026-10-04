@@ -39,7 +39,7 @@ node web/scripts/check-zh.mjs
 python3 -m unittest discover -s deploy/devops/scripts -p 'test_*.py'
 ```
 
-Validated: 433 mobile locale keys, 82 mobile tests, and 6 deployment integrity/rollback tests. Android 15 emulator runs verify all three language options, Chinese persistence after restart, and connection to the actual Dev API. Physical ARM devices have not been tested. The authenticated publisher status and public `latest.json` record the deployed commit and build number.
+Validated: 433 mobile locale keys, 82 mobile tests, and 8 deployment integrity/rollback/transfer tests. Android 15 emulator runs verify all three language options, Chinese persistence after restart, and connection to the actual Dev API. Physical ARM devices have not been tested. The authenticated publisher status and public `latest.json` record the deployed commit and build number.
 
 ## Publisher chart updates
 
@@ -58,3 +58,5 @@ The final review updated `@fastify/busboy` from 3.2.0 to 3.2.2 and `http-cache-s
 - The previously accepted Postman/Faker documentation-generator advisory remains. Documentation generation uses repository-controlled input and does not run in the app image.
 
 Audit totals include dependent packages, so one advisory can report many affected packages. These residual alerts are not fixed or suppressed; review their upstream patches separately.
+
+Delivery uses 1 MiB chunks over up to 16 parallel authenticated connections, verifies the assembled SHA-256, and queues only the complete bundle. The Android workflow accepts an optional `candidate_run` when manually dispatched to retry delivery of an existing APK without recompiling. Both successful APK/smoke jobs and matching repository CI are verified again; the publisher still enforces its allowed branch and increasing versionCode.

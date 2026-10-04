@@ -2,6 +2,11 @@ name: Android self-hosted APK
 
 on:
   workflow_dispatch:
+    inputs:
+      candidate_run:
+        description: 'Optional existing run with successful APK and Android smoke jobs (retry delivery without rebuilding)'
+        required: false
+        type: string
   push:
     branches: [main]
 
@@ -14,6 +19,7 @@ concurrency:
 
 jobs:
   apk:
+    if: inputs.candidate_run == ''
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -128,6 +134,7 @@ jobs:
             smoke/*.txt
 
   stage:
+    if: ${{ !cancelled() && (inputs.candidate_run != '' || (needs.apk.result == 'success' && needs.android-smoke.result == 'success')) }}
     needs: [apk, android-smoke]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -135,19 +142,41 @@ jobs:
       contents: read
       actions: read
     steps:
+      - uses: actions/checkout@v7
+      - name: Select the verified build
+        id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          CANDIDATE_RUN: ${{ inputs.candidate_run || github.run_id }}
+        run: |
+          [[ "$CANDIDATE_RUN" =~ ^[0-9]+$ ]]
+          gh api "repos/$REPO/actions/runs/$CANDIDATE_RUN" > candidate-run.json
+          gh api "repos/$REPO/actions/runs/$CANDIDATE_RUN/jobs?per_page=100" > candidate-jobs.json
+          python3 - <<'PYCODE'
+          import json, os
+          run=json.load(open('candidate-run.json'))
+          jobs=json.load(open('candidate-jobs.json'))['jobs']
+          assert run['path']=='.github/workflows/android-selfhost.yml'
+          assert run['head_repository']['full_name']==os.environ['REPO']
+          assert all(any(j['name']==name and j['conclusion']=='success' for j in jobs) for name in ['apk','android-smoke'])
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              for k,v in dict(SOURCE_SHA=run['head_sha'],SOURCE_BRANCH=run['head_branch'],RUN_NUMBER=run['run_number'],RUN_ID=run['id']).items():
+                  f.write(f'{k}={v}\n')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write(f"run_id={run['id']}\nrun_number={run['run_number']}\n")
+          PYCODE
       - uses: actions/download-artifact@v4
         with:
-          name: famlin-family-apk-${{ github.run_number }}
+          name: famlin-family-apk-${{ steps.candidate.outputs.run_number }}
+          run-id: ${{ steps.candidate.outputs.run_id }}
+          github-token: ${{ github.token }}
           path: bundle
       - name: Verify full CI and push the tested candidate to Olares
         env:
           GH_TOKEN: ${{ github.token }}
           DEPLOY_TOKEN: ${{ secrets.FAMLIN_DEPLOY_TOKEN }}
           REPO: ${{ github.repository }}
-          SOURCE_SHA: ${{ github.sha }}
-          SOURCE_BRANCH: ${{ github.ref_name }}
-          RUN_NUMBER: ${{ github.run_number }}
-          RUN_ID: ${{ github.run_id }}
         run: |
           test -n "$DEPLOY_TOKEN"
           CI_OK=false
@@ -171,11 +200,7 @@ jobs:
                   tar.add(name,arcname=name)
           PYCODE
           cd ..
-          HASH=$(sha256sum candidate.tgz | cut -d ' ' -f1)
-          curl --fail-with-body --retry 3 --retry-all-errors --max-time 600 \
-            -H "Authorization: Bearer $DEPLOY_TOKEN" -H "X-Content-SHA256: $HASH" \
-            -H 'Content-Type: application/gzip' --data-binary @candidate.tgz \
-            https://08c91481.hzfystt.olares.cn/candidates
+          python3 deploy/devops/scripts/upload-candidate.py candidate.tgz
           for attempt in $(seq 1 60); do
             curl --silent --show-error --fail --max-time 20 \
               -H "Authorization: Bearer $DEPLOY_TOKEN" \
