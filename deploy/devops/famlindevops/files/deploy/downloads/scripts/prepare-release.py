@@ -23,6 +23,8 @@ args = p.parse_args()
 url = urlparse(args.base_url)
 if url.scheme != 'https' or not url.netloc or url.query or url.fragment:
     p.error('--base-url must be a public HTTPS URL without a query or fragment')
+if not re.fullmatch(r'[0-9a-f]{40}', args.source_commit):
+    p.error('--source-commit must be a full Git commit SHA')
 base = args.base_url.rstrip('/')
 info = args.package_info.read_text()
 package = re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'", info)
@@ -56,13 +58,13 @@ document = '''<!doctype html>
 </style></head><body><main><div class="brand">Famlin / 家庭相册</div><section class="card">
 <div class="wechat" id="wechat">请点右上角「⋯」，选择「在浏览器中打开」，再下载安装。</div>
 <div class="hero"><div><p class="eyebrow">把生活里的小事，留给最亲的人</p><h1>家人的日常，<br>在这里相聚。</h1><p class="sub">安装安卓客户端，连接家庭自己的相册。<br>照片、视频和成长点滴，一起慢慢收藏。</p>
-<a class="download" href="APK_URL" download>下载 Android 安装包</a><p class="meta">VERSION · SIZE MB · Android MINANDROID 及以上</p></div>
+<a class="download" href="APK_URL" download>下载 Android 安装包</a><p class="meta">版本 <a href="https://github.com/TShentu/famlin/commit/COMMIT"><code>SHORT_SHA</code></a> · SIZE MB · Android MINANDROID 及以上</p></div>
 <div class="qr"><img src="install-qr.png" alt="安卓手机扫描二维码打开安装页" width="180" height="180">安卓手机扫码安装</div></div>
 <hr class="divider"><h2>三步开始使用</h2><ol><li>点击上方按钮，下载完成后打开 APK 文件。</li><li>按手机提示允许此浏览器安装应用，再确认安装。</li><li>打开 Famlin，填写家人提供的服务器地址并登录，或使用家庭邀请链接。</li></ol>
 <p class="note">这是家庭自托管版本。以后的新版本也会在此页面提供，直接覆盖安装即可，无需先卸载。</p>
 <h2>本次更新</h2><p class="sub">NOTES</p><details><summary>版本与文件校验信息</summary><p>包名：<code>cn.olares.hzfystt.famlin</code><br>构建编号：CODE<br>SHA-256：<code>DIGEST</code><br>源代码提交：<code>COMMIT</code></p><a href="latest.json">版本信息</a> · <a href="SHA256SUMS">校验文件</a></details>
 </section><footer><a href="https://github.com/TShentu/famlin">Famlin 开源项目</a> · <a href="LICENSE.txt">MIT 许可</a><br>此页面仅分发安装包，不存储家庭照片</footer></main><script>if(/MicroMessenger/i.test(navigator.userAgent))document.getElementById('wechat').style.display='block';</script></body></html>'''
-for key, value in dict(APK_URL=filename, VERSION=version, SIZE=f'{size/1024/1024:.1f}',
+for key, value in dict(APK_URL=filename, SHORT_SHA=args.source_commit[:7], SIZE=f'{size/1024/1024:.1f}',
                        MINANDROID={'24':'7.0'}.get(minimum[1], 'API '+minimum[1]), NOTES=args.notes, CODE=str(code), DIGEST=digest,
                        COMMIT=args.source_commit).items():
     document = document.replace(key, e(value))
