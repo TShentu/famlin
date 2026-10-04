@@ -535,5 +535,17 @@
     "remove": "移除",
     "share": "分享",
     "shareFailed": "故事分享失败。"
+  },
+  "updates": {
+    "title": "应用更新",
+    "check": "检查更新",
+    "current": "当前已是最新版本。",
+    "available": "发现新版本",
+    "message": "新版本 {{commit}} 已发布。将在浏览器中下载 APK，下载后打开文件即可覆盖安装，原有数据会保留。",
+    "later": "稍后再说",
+    "download": "下载更新",
+    "failed": "检查更新失败，请稍后重试。",
+    "openFailed": "无法打开下载链接，请稍后重试。",
+    "incompatible": "此更新需要更高版本的 Android。"
   }
 }

@@ -535,5 +535,17 @@
     "remove": "Remove",
     "share": "Share",
     "shareFailed": "Your story couldn't be shared."
+  },
+  "updates": {
+    "title": "App updates",
+    "check": "Check for updates",
+    "current": "You are using the latest version.",
+    "available": "Update available",
+    "message": "Version {{commit}} is available. Download the APK in your browser, then open it to install over the current app. Your data will be kept.",
+    "later": "Later",
+    "download": "Download update",
+    "failed": "Could not check for updates. Please try again.",
+    "openFailed": "Could not open the download link. Please try again.",
+    "incompatible": "This update requires a newer Android version."
   }
 }
