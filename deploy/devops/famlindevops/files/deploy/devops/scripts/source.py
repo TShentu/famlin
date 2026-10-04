@@ -3,6 +3,7 @@ import hashlib
 import io
 import json
 import os
+import stat
 import tarfile
 from pathlib import Path, PurePosixPath
 
@@ -16,6 +17,7 @@ def allowed(name):
 
 def read_bundle(data, expected_commit):
     files = {}
+    modes = {}
     with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
         total = 0
         for item in archive:
@@ -27,12 +29,15 @@ def read_bundle(data, expected_commit):
             if item.name in files:
                 raise ValueError('Duplicate source entry')
             files[item.name] = archive.extractfile(item).read()
+            if item.name.startswith('source/'):
+                modes[item.name[7:]] = 0o755 if item.mode & 0o111 else 0o644
     manifest = json.loads(files.pop('manifest.json'))
     if manifest['sourceCommit'] != expected_commit:
         raise ValueError('Source commit mismatch')
     files = {name[7:]: data for name, data in files.items()}
     if {name: hashlib.sha256(data).hexdigest() for name, data in files.items()} != manifest['files']:
         raise ValueError('Source manifest checksum mismatch')
+    manifest['modes'] = modes
     return manifest, files
 
 
@@ -53,6 +58,8 @@ def atomic(path, data):
         handle.write(data)
         handle.flush()
         os.fsync(handle.fileno())
+    if path.exists():
+        temp.chmod(stat.S_IMODE(path.stat().st_mode))
     temp.replace(path)
 
 
@@ -69,10 +76,10 @@ def apply(root, state_dir, manifest, files):
         if old != new:
             if name.startswith('backend/prisma/migrations/'):
                 raise ValueError('Database migrations require a separate reviewed deployment')
-            changes[name] = old
-    journal = {name: old is not None for name, old in changes.items()}
+            changes[name] = (old, stat.S_IMODE(path.stat().st_mode) if old is not None else None)
+    journal = {name: mode for name, (_old, mode) in changes.items()}
     backup = state_dir/'rollback'
-    for name, old in changes.items():
+    for name, (old, _mode) in changes.items():
         if old is not None:
             atomic(backup/name, old)
     atomic(state_dir/'pending.json', json.dumps(journal).encode())
@@ -80,6 +87,7 @@ def apply(root, state_dir, manifest, files):
         path = destination(root, name)
         if name in files:
             atomic(path, files[name])
+            path.chmod(manifest.get('modes', {}).get(name, 0o644))
         else:
             path.unlink(missing_ok=True)
     restart = any(name.endswith(('package.json', 'package-lock.json')) or name.startswith('deploy/olares/scripts/') for name in changes)
@@ -91,10 +99,11 @@ def rollback(root, state_dir):
     journal = state_dir/'pending.json'
     if not journal.exists():
         return
-    for name, existed in json.loads(journal.read_text()).items():
+    for name, mode in json.loads(journal.read_text()).items():
         path = destination(root, name)
-        if existed:
+        if mode is not None:
             atomic(path, (state_dir/'rollback'/name).read_bytes())
+            path.chmod(mode)
         else:
             path.unlink(missing_ok=True)
     journal.unlink()

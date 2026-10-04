@@ -132,7 +132,7 @@ def execute(args):
     subprocess.run([sys.executable, str(SCRIPTS.parents[1]/'downloads/scripts/prepare-release.py'),
                     '--apk', str(signed), '--package-info', str(stage/'package-info.txt'), '--source-commit', commit,
                     '--base-url', PUBLIC, '--output', str(stage/'site'),
-                    '--notes', '新增完整简体中文界面，可在登录页和个人设置中切换英语、荷兰语和中文。预填家庭开发服务器地址。'], check=True, stdout=subprocess.DEVNULL)
+                    '--notes', f'开发构建 {code}：支持英语、荷兰语和简体中文，默认连接家庭开发服务器。'], check=True, stdout=subprocess.DEVNULL)
     site = stage/'site'
     metadata = json.loads((site/'latest.json').read_text())
     apk = metadata['apkUrl'].rsplit('/', 1)[1]

@@ -29,12 +29,14 @@ class SourceTests(unittest.TestCase):
             root, state = Path(tmp)/'source', Path(tmp)/'state'
             (root/'web').mkdir(parents=True)
             (root/'web/old.ts').write_text('old')
+            (root/'web/old.ts').chmod(0o755)
             (root/'web/user-file').write_text('keep')
             files = {'web/old.ts': b'new', 'web/new.ts': b'new'}
             manifest = {'sourceCommit': 'abc', 'files': {k: hashlib.sha256(v).hexdigest() for k, v in files.items()}}
             apply(root, state, manifest, files)
             rollback(root, state)
             self.assertEqual((root/'web/old.ts').read_text(), 'old')
+            self.assertEqual((root/'web/old.ts').stat().st_mode & 0o777, 0o755)
             self.assertFalse((root/'web/new.ts').exists())
             apply(root, state, manifest, files)
             accept(state, manifest)
