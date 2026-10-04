@@ -1,0 +1,74 @@
+name: Android self-hosted APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/android-selfhost]
+    paths:
+      - '.github/workflows/android-selfhost.yml'
+      - 'mobile/**'
+      - 'packages/api-client/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-selfhost-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      FAMLIN_SELF_HOSTED: '1'
+      FAMLIN_BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+      - run: npm ci
+        working-directory: mobile
+      - run: npx expo install --check
+        working-directory: mobile
+      - run: npx expo prebuild --platform android --no-install
+        working-directory: mobile
+      - name: Keep signing on the local publishing machine
+        run: |
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          p = Path('mobile/android/app/build.gradle')
+          text = p.read_text()
+          marker = 'signingConfig signingConfigs.debug'
+          if marker not in text:
+              raise SystemExit('Unexpected Expo Gradle signing structure')
+          p.write_text(text.replace(marker, 'signingConfig null'))
+          PYCODE
+      - name: Build release APK
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+      - name: Verify and collect APK
+        run: |
+          mkdir -p apk-artifact
+          cp mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk apk-artifact/famlin-family-unsigned.apk
+          BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          "$BUILD_TOOLS/aapt" dump badging apk-artifact/famlin-family-unsigned.apk > apk-artifact/package-info.txt
+          sha256sum apk-artifact/famlin-family-unsigned.apk > apk-artifact/SHA256SUMS
+          git rev-parse HEAD > apk-artifact/source-commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: famlin-family-apk-${{ github.run_number }}
+          path: apk-artifact/
+          retention-days: 30
